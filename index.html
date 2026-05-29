@@ -605,8 +605,9 @@
     @media (max-width: 640px) {
       .hero { padding: 2rem 1rem 1.6rem; }
       .hero h1 { font-size: 1.35rem; }
-      .hero p { font-size: .82rem; }
+      .hero p { font-size: .82rem; overflow-wrap: break-word; word-break: break-word; padding: 0 .5rem; }
       .hero-badge { font-size: .72rem; padding: .25rem .7rem; margin-bottom: .8rem; }
+      .footer p { overflow-wrap: break-word; word-break: break-word; }
 
       .page { padding: 1rem .75rem 3rem; }
 
@@ -671,6 +672,8 @@
     /* ===== 极小屏 ≤380px ===== */
     @media (max-width: 380px) {
       .hero h1 { font-size: 1.15rem; }
+      .hero p { font-size: .74rem; }
+      .footer { font-size: .71rem; padding: 1.2rem .5rem; }
       .page { padding: .75rem .5rem 2.5rem; }
       .card { padding: .85rem; }
       table.summary th,
@@ -688,7 +691,7 @@
       天河供电局 · 配网运维工具
     </div>
     <h1>低压框架断路器整定值计算器</h1>
-    <p>基于《天河供电局低压框架断路器定值整定指引》&nbsp;|&nbsp;2026 |&nbsp;hanhan开发 |&nbsp;版权所有 </p>
+    <p>基于《天河供电局低压框架断路器定值整定指引》 | 2026 | hanhan开发 | 版权所有</p>
   </div>
 </header>
 
