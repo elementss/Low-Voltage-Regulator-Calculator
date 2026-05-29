@@ -24,9 +24,19 @@
       --shadow: 0 20px 60px rgba(0,0,0,0.5);
       --radius: 14px;
       --radius-sm: 8px;
+      --page-max: 1760px;
+      --page-pad: clamp(1rem, 2.2vw, 3.5rem);
+      --layout-gap: clamp(1.25rem, 1.4vw, 2rem);
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html {
+      width: 100%;
+      overflow-x: hidden;
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+    }
 
     body {
       font-family: 'PingFang SC','Microsoft YaHei UI','Helvetica Neue',Arial,sans-serif;
@@ -34,13 +44,14 @@
       color: var(--text);
       min-height: 100vh;
       line-height: 1.6;
+      overflow-x: hidden;
     }
 
     /* ===== Header ===== */
     .hero {
       position: relative;
       overflow: hidden;
-      padding: 3.5rem 2rem 2.5rem;
+      padding: clamp(2.4rem, 3.8vw, 5.2rem) var(--page-pad) clamp(2rem, 2.6vw, 3.25rem);
       text-align: center;
       background: linear-gradient(160deg, #0b1120 0%, #0f2a5e 50%, #0b1120 100%);
     }
@@ -58,7 +69,7 @@
       height: 1px;
       background: linear-gradient(90deg, transparent, rgba(99,140,255,0.4), transparent);
     }
-    .hero-inner { position: relative; z-index: 1; }
+    .hero-inner { position: relative; z-index: 1; width: min(100%, var(--page-max)); margin: 0 auto; }
     .hero-badge {
       display: inline-flex;
       align-items: center;
@@ -67,43 +78,45 @@
       border: 1px solid rgba(59,130,246,0.35);
       color: #93c5fd;
       border-radius: 100px;
-      padding: .3rem .9rem;
-      font-size: .78rem;
+      padding: clamp(.28rem, .22vw, .38rem) clamp(.8rem, .65vw, 1.05rem);
+      font-size: clamp(.72rem, .45vw, .86rem);
       letter-spacing: .06em;
       margin-bottom: 1.2rem;
     }
     .hero h1 {
-      font-size: clamp(1.6rem, 4vw, 2.6rem);
+      font-size: clamp(1.6rem, 2vw, 3.25rem);
       font-weight: 800;
-      letter-spacing: -.02em;
+      letter-spacing: 0;
       background: linear-gradient(135deg, #60a5fa, #a78bfa, #38bdf8);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
       margin-bottom: .5rem;
     }
-    .hero p { color: var(--label); font-size: .95rem; }
+    .hero p { color: var(--label); font-size: clamp(.9rem, .6vw, 1.08rem); max-width: 980px; margin: 0 auto; }
 
     /* ===== Layout ===== */
-    .page { max-width: 1440px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+    .page { width: min(100%, var(--page-max)); margin: 0 auto; padding: clamp(1.25rem, 1.5vw, 2.75rem) var(--page-pad) clamp(3rem, 3vw, 5rem); }
 
     .grid-main {
       display: grid;
-      grid-template-columns: 360px 1fr;
-      gap: 1.5rem;
+      grid-template-columns: clamp(360px, 22vw, 460px) minmax(0, 1fr);
+      gap: var(--layout-gap);
       align-items: start;
+      min-width: 0;
     }
     @media(max-width:1024px){ .grid-main { grid-template-columns: 1fr; } }
 
-    .left-col { display: flex; flex-direction: column; gap: 1.25rem; }
-    .right-col { display: flex; flex-direction: column; gap: 1.25rem; }
+    .left-col { display: flex; flex-direction: column; gap: var(--layout-gap); min-width: 0; }
+    .right-col { display: flex; flex-direction: column; gap: var(--layout-gap); min-width: 0; }
 
     /* ===== Card ===== */
     .card {
       background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 1.5rem;
+      padding: clamp(1.25rem, 1.05vw, 2rem);
+      min-width: 0;
     }
     .card-header {
       display: flex;
@@ -240,7 +253,7 @@
     /* ===== Summary bar ===== */
     .result-meta {
       display: flex;
-      gap: 1.5rem;
+      gap: clamp(1rem, 1vw, 1.75rem) clamp(1.25rem, 1.5vw, 2.25rem);
       flex-wrap: wrap;
       padding: 1rem 1.25rem;
       background: var(--bg-card2);
@@ -255,8 +268,8 @@
     /* ===== Protection Grid ===== */
     .prot-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 1rem;
+      grid-template-columns: repeat(auto-fit, minmax(clamp(260px, 15vw, 340px), 1fr));
+      gap: clamp(1rem, 1vw, 1.4rem);
       margin-bottom: 1.4rem;
     }
 
@@ -302,7 +315,7 @@
     }
 
     .pc-main {
-      font-size: 2rem;
+      font-size: clamp(2rem, 1.3vw, 2.75rem);
       font-weight: 800;
       color: var(--text);
       line-height: 1;
@@ -603,15 +616,18 @@
 
     /* ===== Mobile ≤640px ===== */
     @media (max-width: 640px) {
+      :root { --page-pad: 0px; --layout-gap: 1rem; }
       .hero { padding: 2rem 1rem 1.6rem; }
-      .hero h1 { font-size: 1.35rem; }
-      .hero p { font-size: .82rem; overflow-wrap: break-word; word-break: break-word; padding: 0 .5rem; }
+      .hero h1 { font-size: clamp(1.22rem, 5vw, 1.45rem); line-height: 1.28; }
+      .hero p { font-size: .82rem; line-height: 1.55; overflow-wrap: break-word; word-break: break-word; padding: 0 .5rem; max-width: 22rem; }
       .hero-badge { font-size: .72rem; padding: .25rem .7rem; margin-bottom: .8rem; }
       .footer p { overflow-wrap: break-word; word-break: break-word; }
 
-      .page { padding: 1rem .75rem 3rem; }
+      .page { width: 100%; padding: 1rem 0 3rem; }
+      .grid-main { gap: 1rem; }
 
-      .card { padding: 1rem; }
+      /* 卡片全宽铺满，与 hero 等宽 */
+      .card { padding: 1rem; border-left: none; border-right: none; border-radius: 0; }
       .card-header { font-size: .92rem; margin-bottom: 1rem; }
 
       /* 保护卡片：单列，缩小内边距 */
@@ -649,7 +665,9 @@
       .info-box { flex-direction: column; align-items: flex-start; gap: .3rem; }
 
       /* 参考表：允许横向滚动 */
-      .ref-tbl-wrap { -webkit-overflow-scrolling: touch; }
+      .tbl-wrap,
+      .ref-tbl-wrap,
+      .tbl-wrap-cmp { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
       /* 短路分析 */
       .sc-block { padding: .75rem .85rem; }
@@ -674,10 +692,23 @@
       .hero h1 { font-size: 1.15rem; }
       .hero p { font-size: .74rem; }
       .footer { font-size: .71rem; padding: 1.2rem .5rem; }
-      .page { padding: .75rem .5rem 2.5rem; }
-      .card { padding: .85rem; }
+      .page { padding: .75rem 0 2.5rem; }
+      .card { padding: .85rem; border-radius: 0; }
       table.summary th,
       table.summary td { padding: .4rem .45rem; font-size: .72rem; }
+    }
+
+    /* ===== Large desktop / 4K ===== */
+    @media (min-width: 1920px) {
+      .card-header { font-size: 1.08rem; }
+      .form-control,
+      .form-ctrl-num,
+      .station-form input[type=text] { font-size: 1rem; }
+      .result-meta { font-size: .94rem; padding: 1.1rem 1.35rem; }
+      table.summary { font-size: .94rem; }
+      table.reftbl,
+      table.cmp-tbl { font-size: .9rem; }
+      #tic-canvas { height: 460px; }
     }
   </style>
 </head>
@@ -1416,10 +1447,13 @@ function doCalculate() {
 function drawDiagram(kva, inA, irA, isdA, iiA) {
   const canvas = $('tic-canvas');
   canvas.width = canvas.parentElement.clientWidth || 700;
-  canvas.height = 400;
+  const cssHeight = parseInt(getComputedStyle(canvas).height, 10);
+  canvas.height = Number.isFinite(cssHeight) && cssHeight > 0 ? cssHeight : 400;
   const ctx = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
-  const pad = { top:28, right:32, bottom:60, left:72 };
+  const pad = W < 520
+    ? { top:24, right:18, bottom:56, left:58 }
+    : { top:28, right:32, bottom:60, left:72 };
 
   ctx.clearRect(0,0,W,H);
 
