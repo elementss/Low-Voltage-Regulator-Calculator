@@ -1,0 +1,2089 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>低压框架断路器整定值计算器 | 天河供电局</title>
+  <style>
+    /* ===== CSS Variables ===== */
+    :root {
+      --bg: #0b1120;
+      --bg-card: #111827;
+      --bg-card2: #1a2236;
+      --border: rgba(148,163,184,0.15);
+      --primary: #3b82f6;
+      --primary-dark: #1d4ed8;
+      --accent: #818cf8;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --cyan: #06b6d4;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --label: #94a3b8;
+      --shadow: 0 20px 60px rgba(0,0,0,0.5);
+      --radius: 14px;
+      --radius-sm: 8px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'PingFang SC','Microsoft YaHei UI','Helvetica Neue',Arial,sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    /* ===== Header ===== */
+    .hero {
+      position: relative;
+      overflow: hidden;
+      padding: 3.5rem 2rem 2.5rem;
+      text-align: center;
+      background: linear-gradient(160deg, #0b1120 0%, #0f2a5e 50%, #0b1120 100%);
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(59,130,246,0.18) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(99,140,255,0.4), transparent);
+    }
+    .hero-inner { position: relative; z-index: 1; }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      background: rgba(59,130,246,0.15);
+      border: 1px solid rgba(59,130,246,0.35);
+      color: #93c5fd;
+      border-radius: 100px;
+      padding: .3rem .9rem;
+      font-size: .78rem;
+      letter-spacing: .06em;
+      margin-bottom: 1.2rem;
+    }
+    .hero h1 {
+      font-size: clamp(1.6rem, 4vw, 2.6rem);
+      font-weight: 800;
+      letter-spacing: -.02em;
+      background: linear-gradient(135deg, #60a5fa, #a78bfa, #38bdf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: .5rem;
+    }
+    .hero p { color: var(--label); font-size: .95rem; }
+
+    /* ===== Layout ===== */
+    .page { max-width: 1440px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+    .grid-main {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 1.5rem;
+      align-items: start;
+    }
+    @media(max-width:1024px){ .grid-main { grid-template-columns: 1fr; } }
+
+    .left-col { display: flex; flex-direction: column; gap: 1.25rem; }
+    .right-col { display: flex; flex-direction: column; gap: 1.25rem; }
+
+    /* ===== Card ===== */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+    }
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 1.4rem;
+    }
+    .card-header .bar {
+      width: 4px;
+      height: 1.1em;
+      border-radius: 2px;
+      background: linear-gradient(180deg, var(--primary), var(--accent));
+      flex-shrink: 0;
+    }
+
+    /* ===== Form ===== */
+    .form-group { margin-bottom: 1.1rem; }
+    .form-label {
+      display: flex;
+      align-items: center;
+      gap: .4rem;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--label);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      margin-bottom: .45rem;
+    }
+    .form-control {
+      width: 100%;
+      padding: .7rem 1rem;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-size: .95rem;
+      font-family: inherit;
+      transition: border-color .2s, box-shadow .2s;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2364748b' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 1rem center;
+      padding-right: 2.5rem;
+      cursor: pointer;
+    }
+    select.form-control option { background: #1e293b; color: var(--text); }
+    .form-control:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(59,130,246,.2);
+    }
+    .form-hint { font-size: .76rem; color: var(--muted); margin-top: .35rem; }
+
+    .info-box {
+      background: rgba(59,130,246,.08);
+      border: 1px solid rgba(59,130,246,.25);
+      border-radius: var(--radius-sm);
+      padding: .7rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: .8rem;
+    }
+    .info-box .ib-label { font-size: .82rem; color: var(--label); }
+    .info-box .ib-value { font-size: 1.05rem; font-weight: 700; color: #60a5fa; }
+
+    /* ===== Buttons ===== */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: .5rem;
+      padding: .8rem 1.4rem;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: .95rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all .2s;
+      user-select: none;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      color: #fff;
+      width: 100%;
+      padding: .9rem;
+      font-size: 1rem;
+      letter-spacing: .02em;
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(37,99,235,.4); }
+    .btn-primary:active { transform: translateY(0); }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--label);
+    }
+    .btn-outline:hover { background: rgba(255,255,255,.05); color: var(--text); border-color: rgba(148,163,184,.3); }
+
+    .btn-group { display: flex; gap: .75rem; flex-wrap: wrap; margin-top: 1.2rem; }
+
+    /* ===== Results Placeholder ===== */
+    .placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 4rem 2rem;
+      color: var(--muted);
+      text-align: center;
+    }
+    .placeholder svg { width: 64px; height: 64px; opacity: .25; margin-bottom: 1.2rem; }
+    .placeholder p { font-size: .95rem; }
+
+    /* ===== Alert ===== */
+    .alert {
+      display: flex;
+      align-items: flex-start;
+      gap: .6rem;
+      padding: .75rem 1rem;
+      border-radius: var(--radius-sm);
+      font-size: .85rem;
+      margin-bottom: 1.2rem;
+    }
+    .alert-info { background: rgba(59,130,246,.1); border: 1px solid rgba(59,130,246,.25); color: #93c5fd; }
+    .alert-warn { background: rgba(245,158,11,.1); border: 1px solid rgba(245,158,11,.3); color: #fcd34d; }
+    .alert-success { background: rgba(16,185,129,.1); border: 1px solid rgba(16,185,129,.25); color: #6ee7b7; }
+
+    /* ===== Summary bar ===== */
+    .result-meta {
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      padding: 1rem 1.25rem;
+      background: var(--bg-card2);
+      border-radius: var(--radius-sm);
+      margin-bottom: 1.4rem;
+      font-size: .88rem;
+    }
+    .result-meta .m-item { display: flex; flex-direction: column; gap: .15rem; }
+    .result-meta .m-label { color: var(--muted); font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; }
+    .result-meta .m-val { color: var(--text); font-weight: 700; font-size: 1rem; }
+
+    /* ===== Protection Grid ===== */
+    .prot-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.4rem;
+    }
+
+    .prot-card {
+      border-radius: 12px;
+      padding: 1.2rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .prot-card::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      border-radius: 12px 12px 0 0;
+    }
+
+    .prot-card.lt { background: linear-gradient(160deg,rgba(37,99,235,.14),rgba(37,99,235,.04)); border: 1px solid rgba(37,99,235,.3); }
+    .prot-card.lt::after { background: linear-gradient(90deg,#2563eb,#60a5fa); }
+
+    .prot-card.st { background: linear-gradient(160deg,rgba(124,58,237,.14),rgba(124,58,237,.04)); border: 1px solid rgba(124,58,237,.3); }
+    .prot-card.st::after { background: linear-gradient(90deg,#7c3aed,#a78bfa); }
+
+    .prot-card.inst { background: linear-gradient(160deg,rgba(239,68,68,.14),rgba(239,68,68,.04)); border: 1px solid rgba(239,68,68,.3); }
+    .prot-card.inst::after { background: linear-gradient(90deg,#ef4444,#f87171); }
+
+    .prot-card.gnd { background: linear-gradient(160deg,rgba(16,185,129,.14),rgba(16,185,129,.04)); border: 1px solid rgba(16,185,129,.3); }
+    .prot-card.gnd::after { background: linear-gradient(90deg,#10b981,#34d399); }
+
+    .prot-card.alm { background: linear-gradient(160deg,rgba(245,158,11,.14),rgba(245,158,11,.04)); border: 1px solid rgba(245,158,11,.3); }
+    .prot-card.alm::after { background: linear-gradient(90deg,#f59e0b,#fcd34d); }
+
+    .prot-card.oth { background: linear-gradient(160deg,rgba(100,116,139,.12),rgba(100,116,139,.03)); border: 1px solid rgba(100,116,139,.2); }
+    .prot-card.oth::after { background: linear-gradient(90deg,#475569,#64748b); }
+
+    .pc-title {
+      font-size: .72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--muted);
+      margin-bottom: .9rem;
+    }
+
+    .pc-main {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--text);
+      line-height: 1;
+      margin-bottom: .2rem;
+    }
+    .pc-main .unit { font-size: .9rem; font-weight: 400; color: var(--muted); margin-left: .2rem; }
+
+    .pc-sub { font-size: .8rem; color: var(--label); margin-bottom: .8rem; }
+
+    .pc-rows { border-top: 1px solid rgba(255,255,255,.06); padding-top: .7rem; display: flex; flex-direction: column; gap: .45rem; }
+    .pc-row { display: flex; justify-content: space-between; align-items: center; }
+    .pc-row-label { font-size: .8rem; color: var(--muted); }
+    .pc-row-val { font-size: .85rem; font-weight: 600; color: var(--text); }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: .3rem;
+      padding: .2rem .65rem;
+      border-radius: 100px;
+      font-size: .72rem;
+      font-weight: 700;
+      letter-spacing: .04em;
+    }
+    .badge-off { background: rgba(100,116,139,.18); color: #64748b; border: 1px solid rgba(100,116,139,.25); }
+    .badge-on  { background: rgba(16,185,129,.15); color: #34d399; border: 1px solid rgba(16,185,129,.3); }
+    .badge-calc{ background: rgba(59,130,246,.15); color: #93c5fd; border: 1px solid rgba(59,130,246,.3); }
+    .badge-tbl { background: rgba(124,58,237,.15); color: #c4b5fd; border: 1px solid rgba(124,58,237,.3); }
+
+    /* ===== Summary Table ===== */
+    .tbl-wrap { overflow-x: auto; border-radius: var(--radius-sm); border: 1px solid var(--border); }
+    table.summary {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+    }
+    table.summary thead tr { background: rgba(30,64,175,.2); }
+    table.summary th {
+      padding: .7rem 1rem;
+      text-align: left;
+      color: #93c5fd;
+      font-weight: 600;
+      font-size: .78rem;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      white-space: nowrap;
+    }
+    table.summary td { padding: .65rem 1rem; border-top: 1px solid var(--border); color: var(--text); }
+    table.summary tr:hover td { background: rgba(255,255,255,.025); }
+    table.summary .val-em { font-weight: 700; color: #60a5fa; }
+    table.summary .val-ref { display: block; font-size: .73rem; color: var(--muted); font-weight: 400; margin-bottom: .15rem; line-height: 1.5; }
+
+    /* ===== Diagram ===== */
+    .diagram-wrap { position: relative; }
+    .diagram-wrap canvas { width: 100%; display: block; border-radius: var(--radius-sm); }
+
+    /* ===== Reference Tables ===== */
+    .ref-tbl-wrap { overflow-x: auto; }
+    table.reftbl {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .83rem;
+    }
+    table.reftbl th {
+      background: rgba(30,64,175,.18);
+      color: #93c5fd;
+      padding: .6rem .9rem;
+      text-align: center;
+      border: 1px solid rgba(59,130,246,.15);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    table.reftbl th:first-child { text-align: left; }
+    table.reftbl td {
+      padding: .55rem .9rem;
+      text-align: center;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    table.reftbl td:first-child { text-align: left; color: var(--text); font-weight: 600; }
+    table.reftbl td.valid { color: var(--text); }
+    table.reftbl td.hl {
+      background: rgba(37,99,235,.25) !important;
+      color: #60a5fa !important;
+      font-weight: 800;
+      outline: 2px solid rgba(59,130,246,.6);
+      outline-offset: -2px;
+    }
+    table.reftbl td.inv { color: #2d3f58; }
+    table.reftbl tr.hl2 td { background: rgba(37,99,235,.1) !important; }
+    table.reftbl tr.hl2 td:first-child { color: #60a5fa; }
+
+    /* Collapsible */
+    .collapse-btn {
+      background: none; border: none; cursor: pointer;
+      color: var(--primary); font-size: .82rem; font-weight: 600;
+      display: flex; align-items: center; gap: .3rem;
+      padding: 0; margin-left: auto;
+      transition: color .15s;
+    }
+    .collapse-btn:hover { color: #93c5fd; }
+    .collapse-content { overflow: hidden; transition: max-height .35s ease, opacity .25s; max-height: 2000px; opacity: 1; }
+    .collapse-content.closed { max-height: 0; opacity: 0; }
+
+    /* ===== Divider ===== */
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 1.2rem 0;
+    }
+
+    /* ===== Section title ===== */
+    .section-title {
+      font-size: .8rem;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--muted);
+      margin-bottom: .9rem;
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+    }
+    .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+    /* ===== Tooltip ===== */
+    [data-tip] { position: relative; cursor: help; }
+    [data-tip]::before {
+      content: attr(data-tip);
+      position: absolute;
+      bottom: 120%; left: 50%;
+      transform: translateX(-50%);
+      background: #1e293b;
+      color: var(--text);
+      font-size: .75rem;
+      padding: .4rem .7rem;
+      border-radius: 6px;
+      white-space: nowrap;
+      border: 1px solid var(--border);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity .15s;
+      z-index: 10;
+    }
+    [data-tip]:hover::before { opacity: 1; }
+
+    /* ===== Formula Reference ===== */
+    .formula-box {
+      background: var(--bg-card2);
+      border-radius: var(--radius-sm);
+      padding: 1rem;
+      font-size: .82rem;
+      color: var(--label);
+      line-height: 2;
+    }
+    .formula-box .f-title { color: var(--text); font-weight: 700; font-size: .85rem; margin-bottom: .3rem; }
+    .formula-box .f-eq { color: #93c5fd; font-family: 'Courier New', monospace; }
+
+    /* ===== Print ===== */
+    @media print {
+      body { background: #fff !important; color: #111 !important; }
+      .hero { background: #1e3a8a !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .no-print { display: none !important; }
+      .card { border: 1px solid #ccc; break-inside: avoid; }
+      .prot-card { border: 1px solid #ddd; page-break-inside: avoid; }
+      :root { --text: #111; --label: #444; --muted: #666; --bg-card:#fff; --border:#ddd; }
+    }
+
+    /* ===== Animations ===== */
+    .fade-up { animation: fadeUp .35s ease both; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #1e3a5f; border-radius: 3px; }
+
+    /* footer */
+    .footer {
+      text-align: center;
+      padding: 2rem 1rem;
+      color: var(--muted);
+      font-size: .82rem;
+      border-top: 1px solid var(--border);
+      margin-top: 2rem;
+    }
+
+    /* ===== Station Info Form ===== */
+    .station-form .sf-row { margin-bottom: .8rem; }
+    .station-form .sf-label { font-size: .78rem; font-weight: 600; color: var(--label); text-transform: uppercase; letter-spacing: .05em; margin-bottom: .35rem; }
+    .station-form input[type=text] { width: 100%; padding: .6rem .9rem; background: rgba(255,255,255,.04); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: .88rem; font-family: inherit; transition: border-color .2s; }
+    .station-form input[type=text]::placeholder { color: var(--muted); }
+    .station-form input[type=text]:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59,130,246,.2); }
+
+    /* ===== History Panel ===== */
+    .hist-list { display: flex; flex-direction: column; gap: .5rem; max-height: 310px; overflow-y: auto; }
+    .hist-item { display: flex; align-items: center; gap: .6rem; padding: .6rem .85rem; background: rgba(255,255,255,.03); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; transition: background .15s, border-color .15s; }
+    .hist-item:hover { background: rgba(59,130,246,.1); border-color: rgba(59,130,246,.35); }
+    .hist-icon { font-size: 1rem; flex-shrink: 0; }
+    .hist-body { flex: 1; min-width: 0; }
+    .hist-title { font-size: .82rem; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .hist-sub { font-size: .71rem; color: var(--muted); }
+    .hist-del { background: none; border: none; color: var(--muted); cursor: pointer; font-size: .82rem; padding: .15rem .3rem; flex-shrink: 0; line-height: 1; border-radius: 4px; }
+    .hist-del:hover { color: var(--danger); background: rgba(239,68,68,.1); }
+    .hist-empty { text-align: center; color: var(--muted); padding: 1.4rem; font-size: .85rem; }
+
+    /* ===== Coordination Check ===== */
+    .check-grid { display: flex; flex-direction: column; gap: .48rem; }
+    .check-item { display: flex; align-items: center; padding: .58rem .85rem; border-radius: var(--radius-sm); gap: .6rem; }
+    .check-pass { background: rgba(16,185,129,.08); border: 1px solid rgba(16,185,129,.22); }
+    .check-warn { background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.22); }
+    .check-fail { background: rgba(239,68,68,.09); border: 1px solid rgba(239,68,68,.25); }
+    .check-icon { font-size: .95rem; flex-shrink: 0; }
+    .check-label { flex: 1; font-size: .82rem; color: var(--text); }
+    .check-label small { display: block; color: var(--muted); font-size: .73rem; margin-top: .1rem; }
+    .check-val { font-weight: 700; font-size: .8rem; white-space: nowrap; }
+    .check-pass .check-val { color: #34d399; }
+    .check-warn .check-val { color: #fcd34d; }
+    .check-fail .check-val { color: #f87171; }
+
+    /* ===== SC Analysis ===== */
+    .sc-block { background: var(--bg-card2); border-radius: var(--radius-sm); padding: 1rem 1.1rem; }
+    .sc-row { display: flex; justify-content: space-between; align-items: center; padding: .38rem 0; border-bottom: 1px solid rgba(255,255,255,.05); font-size: .83rem; }
+    .sc-row:last-child { border-bottom: none; }
+    .sc-row-label { color: var(--muted); }
+    .sc-row-val { font-weight: 700; }
+    .sc-bar-track { height: 7px; background: rgba(255,255,255,.06); border-radius: 4px; overflow: hidden; margin: .28rem 0; }
+    .sc-bar-fill { height: 100%; border-radius: 4px; transition: width .6s ease; }
+    .sc-bar-lbl { display: flex; justify-content: space-between; font-size: .71rem; color: var(--muted); }
+    .ks-good { color: #34d399; }
+    .ks-warn { color: #fcd34d; }
+    .ks-bad  { color: #f87171; }
+
+    /* ===== Comparison Table ===== */
+    .tbl-wrap-cmp { overflow-x: auto; border-radius: var(--radius-sm); border: 1px solid var(--border); }
+    table.cmp-tbl { width: 100%; border-collapse: collapse; font-size: .82rem; }
+    table.cmp-tbl th { background: rgba(30,64,175,.18); color: #93c5fd; padding: .55rem .8rem; text-align: center; border: 1px solid rgba(59,130,246,.15); font-weight: 600; font-size: .76rem; white-space: nowrap; }
+    table.cmp-tbl th:first-child { text-align: left; }
+    table.cmp-tbl td { padding: .5rem .8rem; border: 1px solid var(--border); text-align: center; color: var(--label); font-size: .8rem; }
+    table.cmp-tbl td:first-child { text-align: left; color: var(--text); font-weight: 600; }
+    table.cmp-tbl tr.cmp-current td { background: rgba(37,99,235,.15) !important; }
+    table.cmp-tbl tr.cmp-current td:first-child { color: #60a5fa; }
+    .cmp-ok { color: #34d399; font-weight: 700; }
+    .cmp-warn { color: #fcd34d; font-weight: 700; }
+
+    /* ===== Print Header ===== */
+    .print-header { display: none; }
+    @media print {
+      .print-header { display: block; padding-bottom: 1rem; margin-bottom: 1.2rem; border-bottom: 2px solid #ccc; }
+      .print-header h2 { font-size: 1.3rem; margin-bottom: .4rem; }
+      .print-header .ph-meta { font-size: .85rem; color: #555; line-height: 2.2; }
+      #history-card, #station-card { display: none !important; }
+      .check-pass, .check-warn, .check-fail { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+
+    /* ===== Advanced Params: Number Input ===== */
+    .form-ctrl-num {
+      width: 100%;
+      padding: .7rem 1rem;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-size: .95rem;
+      font-family: inherit;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .form-ctrl-num::placeholder { color: var(--muted); }
+    .form-ctrl-num:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59,130,246,.2); }
+    .form-ctrl-num::-webkit-outer-spin-button,
+    .form-ctrl-num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    .form-ctrl-num[type=number] { -moz-appearance: textfield; appearance: textfield; }
+
+    /* ===== Load Analysis ===== */
+    .load-row { display: flex; justify-content: space-between; align-items: center; padding: .38rem 0; border-bottom: 1px solid rgba(255,255,255,.05); font-size: .83rem; }
+    .load-row:last-child { border-bottom: none; }
+    .load-row-label { color: var(--muted); }
+    .load-row-val { font-weight: 700; }
+
+    /* ===== Cable Stats ===== */
+    .cable-result { display: flex; gap: .75rem; flex-wrap: wrap; margin-bottom: .8rem; }
+    .cable-stat { flex: 1; min-width: 110px; background: var(--bg-card2); border-radius: var(--radius-sm); padding: .7rem; text-align: center; }
+    .cable-stat .cs-val { font-size: 1.2rem; font-weight: 800; color: var(--text); }
+    .cable-stat .cs-unit { font-size: .75rem; color: var(--muted); }
+    .cable-stat .cs-lbl { font-size: .7rem; color: var(--label); margin-top: .15rem; line-height: 1.3; }
+
+    /* ===== Report Number Button ===== */
+    .repno-wrap { display: flex; gap: .4rem; align-items: center; }
+    .repno-wrap input[type=text] { flex: 1; }
+    .btn-gen { padding: .4rem .65rem; background: rgba(59,130,246,.15); border: 1px solid rgba(59,130,246,.3); color: #93c5fd; border-radius: 6px; cursor: pointer; font-size: .78rem; white-space: nowrap; font-family: inherit; transition: background .15s; }
+    .btn-gen:hover { background: rgba(59,130,246,.28); }
+
+    /* ===== Gauge (semicircle) ===== */
+    .gauge-outer { display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
+    .gauge-box { text-align: center; flex-shrink: 0; }
+    .gauge-stats { flex: 1; min-width: 180px; }
+  </style>
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="hero-badge">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      天河供电局 · 配网运维工具
+    </div>
+    <h1>低压框架断路器整定值计算器</h1>
+    <p>基于《天河供电局低压框架断路器定值整定指引》&nbsp;|&nbsp;2026 |&nbsp;hanhan开发 |&nbsp;版权所有 </p>
+  </div>
+</header>
+
+<!-- ===== MAIN ===== -->
+<div class="page">
+  <div class="grid-main">
+
+    <!-- ====== LEFT: Input ====== -->
+    <div class="left-col">
+
+      <div class="card">
+        <div class="card-header"><span class="bar"></span>参数输入</div>
+
+        <div class="form-group">
+          <label class="form-label">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+            变压器额定容量
+          </label>
+          <select class="form-control" id="sel-kva" onchange="onKvaChange()">
+            <option value="315">315 kVA</option>
+            <option value="400">400 kVA</option>
+            <option value="500">500 kVA</option>
+            <option value="630">630 kVA</option>
+            <option value="750">750 kVA</option>
+            <option value="800">800 kVA</option>
+            <option value="1000">1000 kVA</option>
+            <option value="1250">1250 kVA</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            变压器低压侧线电压
+          </label>
+          <select class="form-control" id="sel-volt" onchange="onVoltChange()">
+            <option value="400" selected>400 V（标准）</option>
+            <option value="380">380 V</option>
+          </select>
+          <div class="form-hint">用于计算低压侧额定电流（三相）</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22V12m0 0V2m0 10H2m10 0h10"/><circle cx="12" cy="12" r="3"/></svg>
+            变压器阻抗电压 Uk%
+          </label>
+          <select class="form-control" id="sel-uk" onchange="updateIrPreview()">
+            <option value="4">4.0 %</option>
+            <option value="4.5">4.5 %</option>
+            <option value="5">5.0 %</option>
+            <option value="6" selected>6.0 %（常用）</option>
+            <option value="7">7.0 %</option>
+            <option value="8">8.0 %</option>
+          </select>
+          <div class="form-hint">用于估算变压器二次侧短路电流及灵敏度校验</div>
+        </div>
+
+        <div class="info-box">
+          <span class="ib-label">变压器低压侧额定电流（三相）</span>
+          <span class="ib-value" id="lv-rated">— A</span>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="form-group" style="margin-bottom:.4rem">
+          <label class="form-label">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+            框架断路器额定电流 In
+          </label>
+          <select class="form-control" id="sel-in" onchange="onInChange()"></select>
+          <div class="form-hint" id="in-hint"></div>
+        </div>
+
+        <div class="info-box" id="ir-preview" style="display:none">
+          <span class="ib-label">长延时 Ir 整定系数（预览）</span>
+          <span class="ib-value" id="ir-prev-val">—</span>
+        </div>
+
+        <div style="margin-top:1.4rem">
+          <button class="btn btn-primary" onclick="doCalculate()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            立即计算整定值
+          </button>
+        </div>
+      </div>
+
+      <!-- Formula Reference -->
+      <div class="card">
+        <div class="card-header"><span class="bar"></span>计算公式参考</div>
+        <div class="formula-box">
+          <div class="f-title">🔵 长延时保护 (LTD)</div>
+          <div class="f-eq">Ir 系数 = (I<sub>LV</sub> × 1.1) ÷ In</div>
+          <div>Tr = <strong>8 s</strong>（固定）</div>
+          <div style="margin-top:.6rem" class="f-title">🟣 短延时保护 (STD)</div>
+          <div class="f-eq">Isd 系数 = 10000 ÷ In</div>
+          <div>Tsd = <strong>400 ms</strong>（固定）</div>
+          <div style="margin-top:.6rem" class="f-title">🔴 瞬时保护 (INST)</div>
+          <div class="f-eq">Ii 系数 = 15000 ÷ In</div>
+          <div style="margin-top:.6rem" class="f-title">⚫ 其他保护</div>
+          <div>接地 Ig、告警 Ip → <strong>退出 / NON</strong></div>
+          <div>三相不平衡、过欠压 → <strong>退出 / NON</strong></div>
+        </div>
+      </div>
+
+      <!-- Advanced Params -->
+      <div class="card">
+        <div class="card-header" style="margin-bottom:.5rem">
+          <span class="bar"></span>高级参数（可选）
+          <button class="collapse-btn no-print" onclick="toggleCollapse('adv-params')" id="btn-adv">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+            展开
+          </button>
+        </div>
+        <div class="collapse-content closed" id="adv-params">
+          <div class="form-group" style="margin-top:.8rem">
+            <label class="form-label">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              实际运行电流 Iload
+            </label>
+            <input type="number" id="inp-iload" class="form-ctrl-num" placeholder="如：350（A），留空则跳过" min="0" step="1">
+            <div class="form-hint">用于计算变压器负载率，校验 Ir 整定值适配性</div>
+          </div>
+          <div class="divider"></div>
+          <div class="form-group">
+            <label class="form-label">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              主母线电缆截面积
+            </label>
+            <select id="sel-cable-sec" class="form-control">
+              <option value="0">不校验</option>
+              <option value="50">50 mm²</option>
+              <option value="70">70 mm²</option>
+              <option value="95">95 mm²</option>
+              <option value="120">120 mm²</option>
+              <option value="150">150 mm²</option>
+              <option value="185">185 mm²</option>
+              <option value="240">240 mm²</option>
+              <option value="300">300 mm²</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:.4rem">
+            <label class="form-label">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+              电缆导体材质
+            </label>
+            <select id="sel-cable-mat" class="form-control">
+              <option value="115">铜芯导体（k = 115）</option>
+              <option value="76">铝芯导体（k = 76）</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Station Info -->
+      <div class="card" id="station-card">
+        <div class="card-header"><span class="bar"></span>站所信息（打印表头用）</div>
+        <div class="station-form">
+          <div class="sf-row"><div class="sf-label">配变名称</div><input type="text" id="st-station" placeholder="如：石牌东路公变"></div>
+          <div class="sf-row"><div class="sf-label">馈线 / 线路名称</div><input type="text" id="st-feeder" placeholder="如：1#低压母线"></div>
+          <div class="sf-row"><div class="sf-label">断路器 / 设备编号</div><input type="text" id="st-equip" placeholder="如：CB-101"></div>
+          <div class="sf-row"><div class="sf-label">操作人员</div><input type="text" id="st-oper" placeholder="请输入姓名"></div>
+          <div class="sf-row" style="margin-bottom:0">
+            <div class="sf-label">整定单编号</div>
+            <div class="repno-wrap">
+              <input type="text" id="st-repno" placeholder="点击右侧按钮自动生成">
+              <button class="btn-gen" onclick="autoGenReportNo()">🔢 生成</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- History -->
+      <div class="card" id="history-card">
+        <div class="card-header" style="margin-bottom:.8rem">
+          <span class="bar"></span>计算历史
+          <button class="collapse-btn no-print" onclick="clearHistory()" style="color:var(--danger);margin-left:auto;font-size:.75rem">🗑 清空</button>
+        </div>
+        <div id="hist-list-wrap"><div class="hist-empty">暂无历史记录</div></div>
+      </div>
+
+    </div>
+
+    <!-- ====== RIGHT: Results ====== -->
+    <div class="right-col">
+
+      <!-- Results Card -->
+      <div class="card" id="results-card">
+        <div id="results-placeholder" class="placeholder">
+          <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="40" cy="40" r="38" stroke="currentColor" stroke-width="2"/>
+            <path d="M40 20v24M40 52v4" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+          </svg>
+          <p>请在左侧填写参数<br>点击"立即计算整定值"</p>
+        </div>
+        <div id="results-content" style="display:none"></div>
+      </div>
+
+      <!-- Time-Current Diagram -->
+      <div class="card" id="diagram-card" style="display:none">
+        <div class="card-header" style="margin-bottom:.8rem">
+          <span class="bar"></span>保护特性曲线
+          <span style="font-size:.75rem;color:var(--muted);font-weight:400;margin-left:.5rem">（对数坐标，长延时参考点：6Ir处 Tr=8 s）</span>
+        </div>
+        <div class="diagram-wrap">
+          <canvas id="tic-canvas" height="400"></canvas>
+        </div>
+      </div>
+
+      <!-- Ref Table 1 -->
+      <div class="card">
+        <div class="card-header" style="margin-bottom:.8rem">
+          <span class="bar"></span>表一：长延时 Ir 整定系数
+          <span style="font-size:.75rem;color:var(--muted);font-weight:400;margin-left:.4rem">（区分容量）</span>
+          <button class="collapse-btn no-print" onclick="toggleCollapse('tbl1-body','this')" id="btn-tbl1">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 15l-6-6-6 6"/></svg>
+            收起
+          </button>
+        </div>
+        <div class="collapse-content" id="tbl1-body">
+          <div class="ref-tbl-wrap">
+            <table class="reftbl" id="table1">
+              <thead>
+                <tr>
+                  <th>容量(kVA) \ In(A)</th>
+                  <th>1000</th><th>1250</th><th>1600</th><th>2000</th><th>2500</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr data-kva="315">
+                  <td>315</td>
+                  <td class="valid" data-in="1000">0.5</td>
+                  <td class="inv"   data-in="1250">/</td>
+                  <td class="inv"   data-in="1600">/</td>
+                  <td class="inv"   data-in="2000">/</td>
+                  <td class="inv"   data-in="2500">/</td>
+                </tr>
+                <tr data-kva="400">
+                  <td>400</td>
+                  <td class="valid" data-in="1000">0.6</td>
+                  <td class="valid" data-in="1250">0.5</td>
+                  <td class="inv"   data-in="1600">/</td>
+                  <td class="inv"   data-in="2000">/</td>
+                  <td class="inv"   data-in="2500">/</td>
+                </tr>
+                <tr data-kva="500">
+                  <td>500</td>
+                  <td class="valid" data-in="1000">0.8</td>
+                  <td class="valid" data-in="1250">0.6</td>
+                  <td class="valid" data-in="1600">0.5</td>
+                  <td class="inv"   data-in="2000">/</td>
+                  <td class="inv"   data-in="2500">/</td>
+                </tr>
+                <tr data-kva="630">
+                  <td>630</td>
+                  <td class="valid" data-in="1000">1.0</td>
+                  <td class="valid" data-in="1250">0.8</td>
+                  <td class="valid" data-in="1600">0.6</td>
+                  <td class="valid" data-in="2000">0.5</td>
+                  <td class="inv"   data-in="2500">/</td>
+                </tr>
+                <tr data-kva="750">
+                  <td>750</td>
+                  <td class="inv"   data-in="1000">/</td>
+                  <td class="valid" data-in="1250">0.9</td>
+                  <td class="valid" data-in="1600">0.7</td>
+                  <td class="valid" data-in="2000">0.6</td>
+                  <td class="inv"   data-in="2500">/</td>
+                </tr>
+                <tr data-kva="800">
+                  <td>800</td>
+                  <td class="inv"   data-in="1000">/</td>
+                  <td class="valid" data-in="1250">1.0</td>
+                  <td class="valid" data-in="1600">0.8</td>
+                  <td class="valid" data-in="2000">0.6</td>
+                  <td class="valid" data-in="2500">0.5</td>
+                </tr>
+                <tr data-kva="1000">
+                  <td>1000</td>
+                  <td class="inv"   data-in="1000">/</td>
+                  <td class="inv"   data-in="1250">/</td>
+                  <td class="valid" data-in="1600">1.0</td>
+                  <td class="valid" data-in="2000">0.8</td>
+                  <td class="valid" data-in="2500">0.6</td>
+                </tr>
+                <tr data-kva="1250">
+                  <td>1250</td>
+                  <td class="inv"   data-in="1000">/</td>
+                  <td class="inv"   data-in="1250">/</td>
+                  <td class="inv"   data-in="1600">/</td>
+                  <td class="valid" data-in="2000">1.0</td>
+                  <td class="valid" data-in="2500">0.8</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ref Table 2 -->
+      <div class="card">
+        <div class="card-header" style="margin-bottom:.8rem">
+          <span class="bar"></span>表二：其他整定值
+          <span style="font-size:.75rem;color:var(--muted);font-weight:400;margin-left:.4rem">（适用于所有容量）</span>
+          <button class="collapse-btn no-print" onclick="toggleCollapse('tbl2-body','this')" id="btn-tbl2">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 15l-6-6-6 6"/></svg>
+            收起
+          </button>
+        </div>
+        <div class="collapse-content" id="tbl2-body">
+          <div class="ref-tbl-wrap">
+            <table class="reftbl" id="table2">
+              <thead>
+                <tr>
+                  <th>In (A)</th>
+                  <th>Isd (×In)</th><th>Tsd (ms)</th>
+                  <th>Ii (×In)</th>
+                  <th>Ip (×In)</th><th>Tp (ms)</th>
+                  <th>Ig (×In)</th><th>Tg (ms)</th>
+                  <th>三相不平衡</th><th>过欠压</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr data-in2="1000"><td>1000</td><td>10</td><td>400</td><td>15</td><td>退出/NON</td><td>最大值</td><td>退出/NON</td><td>最大值</td><td>退出/NON</td><td>退出/NON</td></tr>
+                <tr data-in2="1250"><td>1250</td><td>8</td><td>400</td><td>12</td><td>退出/NON</td><td>最大值</td><td>退出/NON</td><td>最大值</td><td>退出/NON</td><td>退出/NON</td></tr>
+                <tr data-in2="1600"><td>1600</td><td>6</td><td>400</td><td>10</td><td>退出/NON</td><td>最大值</td><td>退出/NON</td><td>最大值</td><td>退出/NON</td><td>退出/NON</td></tr>
+                <tr data-in2="2000"><td>2000</td><td>5</td><td>400</td><td>8</td><td>退出/NON</td><td>最大值</td><td>退出/NON</td><td>最大值</td><td>退出/NON</td><td>退出/NON</td></tr>
+                <tr data-in2="2500"><td>2500</td><td>4</td><td>400</td><td>6</td><td>退出/NON</td><td>最大值</td><td>退出/NON</td><td>最大值</td><td>退出/NON</td><td>退出/NON</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /right-col -->
+  </div><!-- /grid-main -->
+</div><!-- /page -->
+
+<footer class="footer no-print">
+  <p>天河供电局变低框架断路器整定值设置指引&ensp;|&ensp;计算结果仅供参考，请结合实际工况复核&ensp;|&ensp;
+  <a href="天河供电局变低框架断路器整定值设置指引 （天河供电局）20260525.html"
+     style="color:var(--primary);text-decoration:none">查看指引文件 →</a></p>
+</footer>
+
+<!-- ===================================================================
+     JAVASCRIPT
+=================================================================== -->
+<script>
+/* ---------- State ---------- */
+let _lastCalc = null; // 存储最近一次计算结果，供导出使用
+
+/* ---------- Data ---------- */
+// IR_TABLE[变压器容量kVA][断路器In A] = Ir整定系数
+const IR_TABLE = {
+   315: { 1000:0.5 },
+   400: { 1000:0.6, 1250:0.5 },
+   500: { 1000:0.8, 1250:0.6, 1600:0.5 },
+   630: { 1000:1.0, 1250:0.8, 1600:0.6, 2000:0.5 },
+   750: {           1250:0.9, 1600:0.7, 2000:0.6 },
+   800: {           1250:1.0, 1600:0.8, 2000:0.6, 2500:0.5 },
+  1000: {                     1600:1.0, 2000:0.8, 2500:0.6 },
+  1250: {                               2000:1.0, 2500:0.8 }
+};
+// 断路器额定电流档位（A）
+const ALL_IN = [1000, 1250, 1600, 2000, 2500];
+
+/* ---------- Helpers ---------- */
+const $ = id => document.getElementById(id);
+const round2 = v => Math.round(v * 100) / 100;
+
+function lvRated(kva, volt) {
+  return (kva * 1000) / (Math.sqrt(3) * volt);
+}
+
+function getKva()  { return parseInt($('sel-kva').value); }
+function getVolt() { return parseInt($('sel-volt').value); }
+function getIn()   { return parseInt($('sel-in').value); }
+
+/* ---------- Update LV current display ---------- */
+function refreshLVRated() {
+  const I = lvRated(getKva(), getVolt());
+  $('lv-rated').textContent = I.toFixed(1) + ' A';
+}
+
+/* ---------- Update breaker dropdown ---------- */
+function onKvaChange() {
+  const kva = getKva();
+  const valid = IR_TABLE[kva] ? Object.keys(IR_TABLE[kva]).map(Number) : [];
+  const sel = $('sel-in');
+  const prev = getIn();
+  sel.innerHTML = '';
+  ALL_IN.forEach(v => {
+    const opt = document.createElement('option');
+    opt.value = v;
+    const ok = valid.includes(v);
+    opt.textContent = v + ' A' + (ok ? ' ✓' : '');
+    if (!ok) opt.style.color = '#475569';
+    sel.appendChild(opt);
+  });
+  // try to keep previous or pick first valid
+  if (valid.includes(prev)) sel.value = prev;
+  else if (valid.length) sel.value = valid[0];
+
+  $('in-hint').textContent = valid.length
+    ? '推荐选用（表一有对应值）：' + valid.join('、') + ' A'
+    : '';
+
+  refreshLVRated();
+  updateIrPreview();
+  refreshTable1Highlight();
+}
+
+function onVoltChange() {
+  refreshLVRated();
+  updateIrPreview();
+}
+
+function onInChange() {
+  updateIrPreview();
+  refreshTable1Highlight();
+}
+
+function updateIrPreview() {
+  const kva = getKva(), inA = getIn(), volt = getVolt();
+  const row = IR_TABLE[kva];
+  const box = $('ir-preview');
+  if (row && row[inA] !== undefined) {
+    box.style.display = 'flex';
+    $('ir-prev-val').textContent = row[inA] + ' ×In = ' + (row[inA] * inA).toFixed(0) + ' A（查表）';
+  } else {
+    const I = lvRated(kva, volt);
+    const c = round2((I * 1.1) / inA);
+    box.style.display = 'flex';
+    $('ir-prev-val').textContent = c.toFixed(2) + ' ×In = ' + (c * inA).toFixed(0) + ' A（公式）';
+  }
+}
+
+/* ---------- Highlight reference tables ---------- */
+function refreshTable1Highlight() {
+  const kva = getKva(), inA = getIn();
+  document.querySelectorAll('#table1 tbody tr').forEach(tr => {
+    tr.querySelectorAll('td').forEach(td => td.classList.remove('hl'));
+  });
+  document.querySelectorAll('#table1 tbody tr').forEach(tr => {
+    if (parseInt(tr.dataset.kva) === kva) {
+      tr.querySelectorAll('td').forEach(td => {
+        if (parseInt(td.dataset.in) === inA) td.classList.add('hl');
+      });
+    }
+  });
+}
+
+function refreshTable2Highlight(inA) {
+  document.querySelectorAll('#table2 tbody tr').forEach(tr => {
+    tr.classList.remove('hl2');
+    if (parseInt(tr.dataset.in2) === inA) tr.classList.add('hl2');
+  });
+}
+
+/* ---------- Main calculate ---------- */
+function doCalculate() {
+  const kva  = getKva();
+  const inA  = getIn();
+  const volt = getVolt();
+  const I_lv = lvRated(kva, volt);
+  const { station, feeder, equip, oper, repno } = getStationInfo();
+
+  // Ir
+  let irCoeff, irSrc;
+  const row = IR_TABLE[kva];
+  if (row && row[inA] !== undefined) {
+    irCoeff = row[inA]; irSrc = 'table';
+  } else {
+    irCoeff = round2((I_lv * 1.1) / inA); irSrc = 'formula';
+  }
+  const irA  = round2(irCoeff * inA);
+
+  // Isd（整定系数四舍五入取整数）
+  const isdCoeff = Math.round(10000 / inA);
+  const isdA     = isdCoeff * inA;
+
+  // Ii（整定系数向上取整）
+  const iiCoeff = Math.ceil(15000 / inA);
+  const iiA     = iiCoeff * inA;
+
+  // Ip / Ig fixed
+  const ipCoeff = 1.0, igCoeff = 1.0;
+
+  const isStd = (irSrc === 'table');
+
+  // 保存计算结果供导出使用
+  _lastCalc = { kva, inA, volt, uk: getUk(), I_lv, irCoeff, irA, irSrc,
+    isdCoeff, isdA, iiCoeff, iiA, ...getStationInfo(), ts: Date.now() };
+
+  // Build results HTML
+  const html = `
+  <div class="fade-up">
+    <div class="card-header" style="margin-bottom:1rem"><span class="bar"></span>计算结果</div>
+
+    ${isStd
+      ? `<div class="alert alert-success">✅ 该组合在推荐表一中有对应值，Ir 整定系数直接查表取得。</div>`
+      : `<div class="alert alert-warn">⚠️ 变压器容量 ${kva} kVA 与 In=${inA} A 的组合不在推荐表一中，Ir 系数已通过公式计算，请校核后使用。</div>`
+    }
+
+    <div class="result-meta">
+      <div class="m-item"><div class="m-label">变压器容量</div><div class="m-val">${kva} kVA</div></div>
+      <div class="m-item"><div class="m-label">断路器额定 In</div><div class="m-val">${inA} A</div></div>
+      <div class="m-item"><div class="m-label">低压额定电流</div><div class="m-val">${I_lv.toFixed(1)} A</div></div>
+      <div class="m-item"><div class="m-label">侧线电压</div><div class="m-val">${volt} V</div></div>
+      ${repno ? `<div class="m-item"><div class="m-label">整定单编号</div><div class="m-val" style="color:#f59e0b;font-size:.82rem">${repno}</div></div>` : ''}
+    </div>
+
+    <div class="section-title">三段保护整定值</div>
+
+    <div class="prot-grid">
+
+      <!-- 长延时 -->
+      <div class="prot-card lt">
+        <div class="pc-title">🔵 长延时保护 LTD</div>
+        <div class="pc-main">${irA}<span class="unit">A</span></div>
+        <div class="pc-sub">动作电流 Ir = ${irCoeff} × ${inA} A</div>
+        <div class="pc-rows">
+          <div class="pc-row"><span class="pc-row-label">整定系数</span><span class="pc-row-val">${irCoeff} ×In</span></div>
+          <div class="pc-row"><span class="pc-row-label">动作时限 Tr</span><span class="pc-row-val">8 s</span></div>
+          <div class="pc-row"><span class="pc-row-label">数据来源</span>
+            <span>${isStd
+              ? '<span class="badge badge-tbl">📋 查表值</span>'
+              : '<span class="badge badge-calc">🧮 公式值</span>'}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 短延时 -->
+      <div class="prot-card st">
+        <div class="pc-title">🟣 短延时保护 STD</div>
+        <div class="pc-main">${isdA}<span class="unit">A</span></div>
+        <div class="pc-sub">动作电流 Isd = ${isdCoeff} × ${inA} A</div>
+        <div class="pc-rows">
+          <div class="pc-row"><span class="pc-row-label">整定系数</span><span class="pc-row-val">${isdCoeff} ×In&ensp;<span style="color:var(--muted);font-size:.8em">（${round2(isdCoeff/irCoeff)} ×Ir）</span></span></div>
+          <div class="pc-row"><span class="pc-row-label">动作时限 Tsd</span><span class="pc-row-val">400 ms</span></div>
+          <div class="pc-row"><span class="pc-row-label">范围检查</span>
+            <span>${isdA>=8000&&isdA<=10000
+              ? '<span class="badge badge-on">✓ 8000~10000 A</span>'
+              : '<span class="badge badge-calc" style="color:#fcd34d;border-color:#f59e0b">⚠ 偏离建议范围</span>'}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 瞬时 -->
+      <div class="prot-card inst">
+        <div class="pc-title">🔴 瞬时保护 INST</div>
+        <div class="pc-main">${iiA}<span class="unit">A</span></div>
+        <div class="pc-sub">动作电流 Ii = ${iiCoeff} × ${inA} A</div>
+        <div class="pc-rows">
+          <div class="pc-row"><span class="pc-row-label">整定系数</span><span class="pc-row-val">${iiCoeff} ×In&ensp;<span style="color:var(--muted);font-size:.8em">（${round2(iiCoeff/irCoeff)} ×Ir）</span></span></div>
+          <div class="pc-row"><span class="pc-row-label">动作时限</span><span class="pc-row-val">瞬时（&lt;50 ms）</span></div>
+          <div class="pc-row"><span class="pc-row-label">范围检查</span>
+            <span>${iiA>=15000&&iiA<=18000
+              ? '<span class="badge badge-on">✓ 15000~18000 A</span>'
+              : '<span class="badge badge-calc" style="color:#fcd34d;border-color:#f59e0b">⚠ 偏离建议范围</span>'}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 接地 -->
+      <div class="prot-card gnd">
+        <div class="pc-title">🟢 接地保护</div>
+        <div class="pc-main" style="font-size:1.4rem;letter-spacing:-.01em">退出/NON</div>
+        <div class="pc-sub">或电流、时限设定为最大值</div>
+        <div class="pc-rows">
+          <div class="pc-row"><span class="pc-row-label">Ig 系数（备选）</span><span class="pc-row-val">1.0 ×In = ${(1.0*inA)} A</span></div>
+          <div class="pc-row"><span class="pc-row-label">Tg 时限（备选）</span><span class="pc-row-val">400 ms</span></div>
+          <div class="pc-row"><span class="pc-row-label">当前状态</span><span class="badge badge-off">退出 OFF</span></div>
+        </div>
+      </div>
+
+      <!-- 告警 -->
+      <div class="prot-card alm">
+        <div class="pc-title">🟡 告警功能</div>
+        <div class="pc-main" style="font-size:1.4rem;letter-spacing:-.01em">退出/NON</div>
+        <div class="pc-sub">或电流、时限设定为最大值</div>
+        <div class="pc-rows">
+          <div class="pc-row"><span class="pc-row-label">Ip 系数（备选）</span><span class="pc-row-val">1.0 ×In = ${(1.0*inA)} A</span></div>
+          <div class="pc-row"><span class="pc-row-label">Tp 时限（备选）</span><span class="pc-row-val">200 ms</span></div>
+          <div class="pc-row"><span class="pc-row-label">当前状态</span><span class="badge badge-off">退出 OFF</span></div>
+        </div>
+      </div>
+
+      <!-- 其他 -->
+      <div class="prot-card oth">
+        <div class="pc-title">⬛ 其他保护</div>
+        <div class="pc-main" style="font-size:1.4rem;letter-spacing:-.01em">退出/NON</div>
+        <div class="pc-sub">所有其他保护功能</div>
+        <div class="pc-rows">
+          <div class="pc-row"><span class="pc-row-label">三相不平衡保护</span><span class="badge badge-off">退出/NON</span></div>
+          <div class="pc-row"><span class="pc-row-label">过欠压保护</span><span class="badge badge-off">退出/NON</span></div>
+        </div>
+      </div>
+
+    </div><!-- /prot-grid -->
+
+    <!-- Summary Table -->
+    <div class="section-title" style="margin-top:1.4rem">整定值汇总表</div>
+    <div class="tbl-wrap">
+      <table class="summary">
+        <thead>
+          <tr>
+            <th>保护类型</th>
+            <th>符号</th>
+            <th>整定系数</th>
+            <th>动作电流</th>
+            <th>动作时限</th>
+            <th>状态</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>长延时保护</td><td>Ir / Tr</td>
+            <td>${irCoeff} ×In<span class="val-ref" style="margin-top:.15rem">1 ×Ir</span></td>
+            <td class="val-em"><span class="val-ref">In = ${inA} A</span>${irA} A</td>
+            <td>8 s</td>
+            <td><span class="badge badge-on">启用</span></td>
+          </tr>
+          <tr>
+            <td>短延时保护</td><td>Isd / Tsd</td>
+            <td>${isdCoeff} ×In<span class="val-ref" style="margin-top:.15rem">${round2(isdCoeff/irCoeff)} ×Ir</span></td>
+            <td class="val-em"><span class="val-ref">In = ${inA} A / Ir = ${irA} A</span>${isdA} A</td>
+            <td>400 ms</td>
+            <td><span class="badge badge-on">启用</span></td>
+          </tr>
+          <tr>
+            <td>瞬时保护</td><td>Ii</td>
+            <td>${iiCoeff} ×In<span class="val-ref" style="margin-top:.15rem">${round2(iiCoeff/irCoeff)} ×Ir</span></td>
+            <td class="val-em"><span class="val-ref">In = ${inA} A / Ir = ${irA} A</span>${iiA} A</td>
+            <td>瞬时</td>
+            <td><span class="badge badge-on">启用</span></td>
+          </tr>
+          <tr>
+            <td>接地保护</td><td>Ig / Tg</td>
+            <td>退出/NON</td><td>—</td><td>—</td>
+            <td><span class="badge badge-off">退出</span></td>
+          </tr>
+          <tr>
+            <td>告警</td><td>Ip / Tp</td>
+            <td>退出/NON</td><td>—</td><td>—</td>
+            <td><span class="badge badge-off">退出</span></td>
+          </tr>
+          <tr>
+            <td>三相不平衡</td><td>—</td>
+            <td colspan="3">退出/NON</td>
+            <td><span class="badge badge-off">退出</span></td>
+          </tr>
+          <tr>
+            <td>过欠压保护</td><td>—</td>
+            <td colspan="3">退出/NON</td>
+            <td><span class="badge badge-off">退出</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Actions -->
+    <div class="btn-group no-print">
+      <button class="btn btn-outline" onclick="window.print()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        打印整定单
+      </button>
+      <button class="btn btn-outline" onclick="copyToClipboard(${kva},${inA},${irCoeff},${irA},${isdCoeff},${isdA},${iiCoeff},${iiA})">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        复制结果
+      </button>
+      <button class="btn btn-outline" onclick="exportJSON()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        导出 JSON
+      </button>
+      <button class="btn btn-outline" onclick="exportCSV()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        导出 CSV
+      </button>
+    </div>
+
+    <!-- Print Header (only visible when printing) -->
+    <div class="print-header">
+      <h2>天河供电局框架断路器整定值计算单</h2>
+      <div class="ph-meta">
+        ${repno?`整定单编号：${repno}&emsp;`:''}变电站：${station||'—'}&emsp;馈线：${feeder||'—'}&emsp;设备编号：${equip||'—'}&emsp;操作人员：${oper||'—'}&emsp;日期：${new Date().toLocaleDateString('zh-CN')}
+      </div>
+    </div>
+
+    <div class="section-title" style="margin-top:1.8rem">⚖️ 保护配合校验</div>
+    ${buildCoordCheck(inA, irA, isdA, iiA)}
+
+    ${buildSCAnalysis(kva, volt, inA, irA, isdA, iiA)}
+
+    <div class="section-title" style="margin-top:1.8rem">📊 同容量方案对比</div>
+    ${buildCompare(kva, volt, inA)}
+
+    ${buildLoadAnalysis(kva, volt, inA, irA)}
+    ${buildCableCheck(inA, isdA, iiA)}
+
+  </div>`;
+
+  $('results-placeholder').style.display = 'none';
+  $('results-content').style.display = 'block';
+  $('results-content').innerHTML = html;
+
+  // Highlight tables
+  refreshTable1Highlight();
+  refreshTable2Highlight(inA);
+
+  // Draw diagram
+  drawDiagram(kva, inA, irA, isdA, iiA);
+  $('diagram-card').style.display = 'block';
+
+  // Save to history
+  saveHistory({ kva, inA, volt, uk: getUk(), irA, isdA, iiA,
+    station: getStationInfo().station });
+  renderHistory();
+}
+
+/* ---------- Time-Current Diagram ---------- */
+function drawDiagram(kva, inA, irA, isdA, iiA) {
+  const canvas = $('tic-canvas');
+  canvas.width = canvas.parentElement.clientWidth || 700;
+  canvas.height = 400;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const pad = { top:28, right:32, bottom:60, left:72 };
+
+  ctx.clearRect(0,0,W,H);
+
+  // Background
+  const bg = ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,'#0d1b35'); bg.addColorStop(1,'#0b1120');
+  ctx.fillStyle = bg; ctx.fillRect(0,0,W,H);
+
+  // ---- Log scale: dynamic range so curve sits near center ----
+  const Tmin = 0.02, Tmax = 40;
+  const Imin = Math.max(50, Math.round(irA * 0.28));  // start just before Ir
+  const Imax = Math.round(iiA * 1.55);               // end just after Ii
+  const l10 = v => Math.log10(v);
+  const xOf = I => pad.left + (l10(I)-l10(Imin))/(l10(Imax)-l10(Imin)) * (W-pad.left-pad.right);
+  const yOf = T => pad.top  + (l10(Tmax)-l10(T)) /(l10(Tmax)-l10(Tmin))  * (H-pad.top-pad.bottom);
+
+  // ---- Grid ----
+  const gridV = (I, col) => { if(I>=Imin&&I<=Imax){ ctx.strokeStyle=col||'rgba(255,255,255,0.06)'; ctx.lineWidth=1; const x=xOf(I); ctx.beginPath(); ctx.moveTo(x,pad.top); ctx.lineTo(x,H-pad.bottom); ctx.stroke(); } };
+  const gridH = (T, col) => { if(T>=Tmin&&T<=Tmax){ ctx.strokeStyle=col||'rgba(255,255,255,0.06)'; ctx.lineWidth=1; const y=yOf(T); ctx.beginPath(); ctx.moveTo(pad.left,y); ctx.lineTo(W-pad.right,y); ctx.stroke(); } };
+
+  [200,300,500,700,1000,2000,3000,5000,7000,10000,20000].forEach(I=>gridV(I));
+  [0.03,0.05,0.1,0.2,0.5,1,2,4,10,20].forEach(T=>gridH(T));
+  // Highlight key time levels
+  gridH(0.4,'rgba(124,58,237,0.35)'); gridH(8,'rgba(59,130,246,0.35)');
+  // Highlight key current levels
+  gridV(irA,'rgba(59,130,246,0.28)'); gridV(isdA,'rgba(124,58,237,0.28)'); gridV(iiA,'rgba(239,68,68,0.28)');
+
+  // ---- Axis labels: auto-pick ticks from range, skip if too close ----
+  ctx.fillStyle='#64748b'; ctx.font='11px sans-serif'; ctx.textAlign='center';
+  const fmtI = I => I>=1000 ? (I%1000===0 ? I/1000+'k' : (I/1000).toFixed(1)+'k') : String(I);
+  const candidates = [100,200,300,500,700,1000,1500,2000,3000,5000,7000,10000,15000,20000,25000,30000].filter(I=>I>=Imin&&I<=Imax);
+  let prevX = -99;
+  candidates.forEach(I=>{ const x=xOf(I); if(x-prevX>=40){ ctx.fillText(fmtI(I), x, H-pad.bottom+16); prevX=x; } });
+  ctx.fillText('电流 (A)', pad.left+(W-pad.left-pad.right)/2, H-6);
+
+  ctx.textAlign='right';
+  [[0.02,'20ms'],[0.05,'50ms'],[0.1,'100ms'],[0.4,'400ms'],[1,'1s'],[2,'2s'],[4,'4s'],[8,'8s'],[20,'20s'],[40,'40s']].forEach(([T,lbl])=>{
+    if(T>=Tmin&&T<=Tmax) ctx.fillText(lbl, pad.left-6, yOf(T)+4);
+  });
+  ctx.save(); ctx.translate(13, pad.top+(H-pad.top-pad.bottom)/2);
+  ctx.rotate(-Math.PI/2); ctx.textAlign='center'; ctx.fillStyle='#64748b'; ctx.fillText('动作时间', 0, 0); ctx.restore();
+
+  // ---- LTD curve: t = Tr × (6×Ir / I)²  (参考点：I=6Ir 时 t=Tr=8s) ----
+  const ltdT = I => 8 * Math.pow(6*irA/I, 2);
+  const ltdPts = [];
+  for(let I=irA; I<=isdA+1; I+=irA*0.008){
+    const t = ltdT(I);
+    if(t>=Tmin && t<=Tmax) ltdPts.push([xOf(I), yOf(t)]);
+  }
+  // Ensure endpoint at Isd
+  const tAtIsd = ltdT(isdA);
+  if(tAtIsd>=Tmin) ltdPts.push([xOf(isdA), yOf(Math.min(tAtIsd,Tmax))]);
+
+  // LTD zone fill
+  if(ltdPts.length>1){
+    const ltG=ctx.createLinearGradient(0,0,W,0);
+    ltG.addColorStop(0,'rgba(37,99,235,0.18)'); ltG.addColorStop(1,'rgba(37,99,235,0.04)');
+    ctx.fillStyle=ltG; ctx.beginPath();
+    ctx.moveTo(ltdPts[0][0], H-pad.bottom);
+    ltdPts.forEach(([x,y])=>ctx.lineTo(x,y));
+    ctx.lineTo(ltdPts[ltdPts.length-1][0], H-pad.bottom);
+    ctx.closePath(); ctx.fill();
+  }
+
+  // STD zone fill
+  { const xIsd=xOf(isdA), xIi=xOf(iiA), yTsd=yOf(0.4);
+    const stG=ctx.createLinearGradient(xIsd,0,xIi,0);
+    stG.addColorStop(0,'rgba(124,58,237,0.22)'); stG.addColorStop(1,'rgba(124,58,237,0.06)');
+    ctx.fillStyle=stG; ctx.fillRect(xIsd, yTsd, xIi-xIsd, H-pad.bottom-yTsd); }
+
+  // INST zone fill
+  { const xIi=xOf(iiA);
+    const iG=ctx.createLinearGradient(0,pad.top,0,H);
+    iG.addColorStop(0,'rgba(239,68,68,0.4)'); iG.addColorStop(1,'rgba(239,68,68,0.06)');
+    ctx.fillStyle=iG; ctx.fillRect(xIi, pad.top, W-pad.right-xIi, H-pad.bottom-pad.top); }
+
+  ctx.lineWidth=2.5; ctx.setLineDash([]);
+
+  // 1. LTD inverse-time curve
+  if(ltdPts.length>1){
+    ctx.strokeStyle='#3b82f6'; ctx.beginPath();
+    ltdPts.forEach(([x,y],i)=>i===0?ctx.moveTo(x,y):ctx.lineTo(x,y));
+    ctx.stroke();
+  }
+
+  // 2. Vertical drop at Isd from LTD curve to Tsd=400ms
+  { const yTsd=yOf(0.4), xIsd=xOf(isdA);
+    if(tAtIsd>=Tmin && tAtIsd<=Tmax){
+      ctx.strokeStyle='#818cf8'; ctx.beginPath();
+      ctx.moveTo(xIsd, yOf(Math.min(tAtIsd,Tmax))); ctx.lineTo(xIsd, yTsd); ctx.stroke();
+    } }
+
+  // 3. STD horizontal line at 400ms
+  { ctx.strokeStyle='#818cf8'; ctx.beginPath();
+    ctx.moveTo(xOf(isdA), yOf(0.4)); ctx.lineTo(xOf(iiA), yOf(0.4)); ctx.stroke(); }
+
+  // 4. INST vertical drop at Ii
+  { const xIi=xOf(iiA);
+    ctx.strokeStyle='#ef4444'; ctx.beginPath();
+    ctx.moveTo(xIi, yOf(0.4)); ctx.lineTo(xIi, yOf(Tmin*1.1)); ctx.stroke();
+    // Arrow
+    ctx.fillStyle='#ef4444'; ctx.beginPath();
+    ctx.moveTo(xIi, yOf(Tmin*1.02)); ctx.lineTo(xIi-5, yOf(Tmin*1.02)-8); ctx.lineTo(xIi+5, yOf(Tmin*1.02)-8);
+    ctx.closePath(); ctx.fill(); }
+
+  // ---- Labels ----
+  const drawLbl = (text,x,y,color) => {
+    ctx.font='bold 11px sans-serif'; ctx.textAlign='left';
+    const tw=ctx.measureText(text).width;
+    ctx.fillStyle='rgba(8,18,46,0.75)'; ctx.fillRect(x-3,y-13,tw+10,18);
+    ctx.fillStyle=color; ctx.fillText(text,x+2,y);
+  };
+  if(ltdPts.length>4){ drawLbl('长延时 LTD', ltdPts[0][0]+6, ltdPts[0][1]+18, '#60a5fa'); }
+  if(xOf(iiA)-xOf(isdA)>55){ drawLbl('短延时 STD',(xOf(isdA)+xOf(iiA))/2-30,yOf(0.4)-10,'#a78bfa'); }
+  drawLbl('瞬时 INST',xOf(iiA)+8,pad.top+26,'#f87171');
+
+  // ---- Reference point marker (6Ir, 8s) ----
+  const x6Ir=xOf(6*irA);
+  if(6*irA<=Imax){
+    ctx.strokeStyle='rgba(96,165,250,0.55)'; ctx.lineWidth=1; ctx.setLineDash([3,4]);
+    ctx.beginPath(); ctx.moveTo(x6Ir, yOf(8)); ctx.lineTo(pad.left, yOf(8)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x6Ir, yOf(8)); ctx.lineTo(x6Ir, H-pad.bottom); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='#3b82f6'; ctx.beginPath(); ctx.arc(x6Ir, yOf(8), 4, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle='rgba(147,197,253,0.9)'; ctx.font='10px sans-serif'; ctx.textAlign='left';
+    ctx.fillText('参考点(6Ir,8s)', x6Ir+8, yOf(8)+4);
+  }
+
+  // ---- X-axis key current markers ----
+  ctx.setLineDash([]);
+  [[irA,'Ir'],[isdA,'Isd'],[iiA,'Ii']].forEach(([I,name])=>{
+    const x=xOf(I);
+    ctx.strokeStyle='rgba(255,255,255,0.22)'; ctx.lineWidth=1; ctx.setLineDash([3,4]);
+    ctx.beginPath(); ctx.moveTo(x,H-pad.bottom); ctx.lineTo(x,H-pad.bottom+5); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='rgba(200,220,255,0.75)'; ctx.font='bold 10px sans-serif'; ctx.textAlign='center';
+    ctx.fillText(name, x, H-pad.bottom+28);
+    ctx.fillStyle='rgba(140,160,200,0.55)'; ctx.font='9px sans-serif';
+    ctx.fillText(I>=1000?(I/1000).toFixed(1)+'k A':I+' A', x, H-pad.bottom+42);
+  });
+}
+
+/* ---------- Copy to clipboard ---------- */
+function copyToClipboard(kva,inA,irC,irA,isdC,isdA,iiC,iiA){
+  const d = new Date().toLocaleDateString('zh-CN');
+  const txt = `天河供电局框架断路器整定值
+=================================
+变压器容量：${kva} kVA
+断路器额定电流 In：${inA} A
+
+【长延时保护】
+  整定系数 Ir：${irC} ×In
+  动作电流 Ir：${irA} A
+  动作时限 Tr：8 s
+
+【短延时保护】
+  整定系数 Isd：${isdC} ×In
+  动作电流 Isd：${isdA} A
+  动作时限 Tsd：400 ms
+
+【瞬时保护】
+  整定系数 Ii：${iiC} ×In
+  动作电流 Ii：${iiA} A
+  动作时限：瞬时
+
+【接地保护】退出/NON
+【告警】退出/NON
+【三相不平衡保护】退出/NON
+【过欠压保护】退出/NON
+=================================
+计算日期：${d}`;
+
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(txt).then(()=>showToast('✓ 已复制到剪贴板')).catch(()=>fallbackCopy(txt));
+  } else { fallbackCopy(txt); }
+}
+
+function fallbackCopy(txt){
+  const ta = document.createElement('textarea');
+  ta.value = txt; ta.style.position='fixed'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.select();
+  document.execCommand('copy');
+  document.body.removeChild(ta);
+  showToast('✓ 已复制到剪贴板');
+}
+
+/* ---------- Export JSON ---------- */
+function exportJSON() {
+  if (!_lastCalc) { showToast('⚠ 请先执行计算'); return; }
+  const c = _lastCalc;
+  const si = getStationInfo(); // 导出时实时读取，确保后填写的内容也能包含
+  const uk = c.uk || 6;
+  const Isc = c.I_lv / (uk / 100);
+  const ks_isd = Isc / c.isdA;
+  const ks_ii  = Isc / c.iiA;
+  const passChecks = [
+    c.irA <= c.inA,
+    c.isdA / c.irA >= 2,
+    c.iiA / c.isdA >= 1.3,
+    true, // Tr-Tsd 时间级差固定通过
+    c.isdA >= 8000 && c.isdA <= 10000,
+    c.iiA >= 15000 && c.iiA <= 18000
+  ];
+  const passCount = passChecks.filter(Boolean).length;
+
+  const data = {
+    title: '低压框架断路器整定值计算单',
+    unit: '天河供电局',
+    exportTime: new Date().toLocaleString('zh-CN', {hour12:false}),
+    stationInfo: {
+      配变名称: si.station || '',
+      '馈线_线路名称': si.feeder  || '',
+      '断路器_设备编号': si.equip   || '',
+      操作人员: si.oper    || ''
+    },
+    inputParams: {
+      transformerCapacity_kVA: c.kva,
+      lvVoltage_V: c.volt,
+      impedanceVoltage_pct: uk,
+      breakerRatedCurrent_A: c.inA,
+      lvRatedCurrent_A: parseFloat(c.I_lv.toFixed(2))
+    },
+    settings: {
+      longTimeProtection: {
+        enabled: true,
+        irCoeff_xIn: c.irCoeff,
+        irCurrent_A: c.irA,
+        trTime_s: 8,
+        dataSource: c.irSrc === 'table' ? '查表值' : '公式计算'
+      },
+      shortTimeProtection: {
+        enabled: true,
+        isdCoeff_xIn: c.isdCoeff,
+        isdCurrent_A: c.isdA,
+        tsdTime_ms: 400
+      },
+      instantProtection: {
+        enabled: true,
+        iiCoeff_xIn: c.iiCoeff,
+        iiCurrent_A: c.iiA,
+        trippingTime: '瞬时(<50ms)'
+      },
+      groundProtection:    { enabled: false, status: '退出/NON', igCoeff_xIn: 1.0, igCurrent_A: c.inA, tgTime_ms: 400 },
+      alarmProtection:     { enabled: false, status: '退出/NON', ipCoeff_xIn: 1.0, ipCurrent_A: c.inA, tpTime_ms: 200 },
+      unbalanceProtection: { enabled: false, status: '退出/NON' },
+      overvoltageProtection: { enabled: false, status: '退出/NON' }
+    },
+    coordCheck: {
+      passCount: passCount,
+      totalCount: passChecks.length,
+      allPassed: passCount === passChecks.length,
+      details: [
+        { item: 'Ir ≤ In', passed: passChecks[0] },
+        { item: 'Isd/Ir ≥ 2', passed: passChecks[1], ratio: parseFloat((c.isdA/c.irA).toFixed(2)) },
+        { item: 'Ii/Isd ≥ 1.3', passed: passChecks[2], ratio: parseFloat((c.iiA/c.isdA).toFixed(2)) },
+        { item: 'Tr-Tsd 时间级差', passed: passChecks[3], diff_s: 7.6 },
+        { item: 'Isd 在 8000~10000 A', passed: passChecks[4] },
+        { item: 'Ii 在 15000~18000 A',  passed: passChecks[5] }
+      ]
+    },
+    scAnalysis: {
+      impedanceVoltage_pct: uk,
+      estimatedSCCurrent_A: parseFloat(Isc.toFixed(0)),
+      estimatedSCCurrent_kA: parseFloat((Isc/1000).toFixed(3)),
+      sensitivity_Ks_isd: parseFloat(ks_isd.toFixed(3)),
+      sensitivity_Ks_ii:  parseFloat(ks_ii.toFixed(3)),
+      criteria: 'Ks ≥ 1.3 为合格'
+    }
+  };
+
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const ts   = new Date(c.ts);
+  const datePart = `${ts.getFullYear()}${String(ts.getMonth()+1).padStart(2,'0')}${String(ts.getDate()).padStart(2,'0')}`;
+  a.href = url;
+  a.download = `整定值_${c.kva}kVA_${c.inA}A_${datePart}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('✓ JSON 文件已导出');
+}
+
+function showToast(msg){
+  let t = document.getElementById('toast');
+  if(!t){ t=document.createElement('div'); t.id='toast';
+    t.style.cssText='position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);background:#10b981;color:#fff;padding:.6rem 1.4rem;border-radius:100px;font-size:.9rem;font-weight:600;z-index:9999;transition:opacity .3s';
+    document.body.appendChild(t); }
+  t.textContent=msg; t.style.opacity='1';
+  clearTimeout(t._timer);
+  t._timer=setTimeout(()=>t.style.opacity='0', 2500);
+}
+
+/* ---------- Station Info & Uk% ---------- */
+function getStationInfo() {
+  const v = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+  return { station: v('st-station'), feeder: v('st-feeder'), equip: v('st-equip'), oper: v('st-oper'), repno: v('st-repno') };
+}
+function getUk() { const el = document.getElementById('sel-uk'); return el ? (parseFloat(el.value) || 6) : 6; }
+
+/* ---------- Protection Coordination Check ---------- */
+function buildCoordCheck(inA, irA, isdA, iiA) {
+  const checks = [];
+
+  // 1. Ir ≤ In
+  const ok1 = irA <= inA;
+  checks.push({ cls: ok1?'pass':'fail', icon: ok1?'✅':'❌',
+    label: `长延时 Ir (${irA} A) ${ok1?'≤':'>'} In (${inA} A)`,
+    sub: '长延时电流不应超过断路器额定电流',
+    val: ok1 ? '合规 ✓' : '超额定 ✗' });
+
+  // 2. Isd/Ir 级差
+  const ratio1 = (isdA / irA).toFixed(2);
+  const ok2 = isdA / irA >= 2;
+  checks.push({ cls: ok2?'pass':'warn', icon: ok2?'✅':'⚠️',
+    label: `短/长延时级差比 Isd/Ir = ${ratio1}`,
+    sub: `${isdA} A ÷ ${irA} A，建议 ≥ 2 倍`,
+    val: ok2 ? `${ratio1} ≥ 2 ✓` : `${ratio1} < 2 ⚠` });
+
+  // 3. Ii/Isd 级差
+  const ratio2 = (iiA / isdA).toFixed(2);
+  const ok3 = iiA / isdA >= 1.3;
+  checks.push({ cls: ok3?'pass':'warn', icon: ok3?'✅':'⚠️',
+    label: `瞬时/短延时级差比 Ii/Isd = ${ratio2}`,
+    sub: `${iiA} A ÷ ${isdA} A，建议 ≥ 1.3 倍`,
+    val: ok3 ? `${ratio2} ≥ 1.3 ✓` : `${ratio2} < 1.3 ⚠` });
+
+  // 4. 时间级差 Tr - Tsd
+  checks.push({ cls: 'pass', icon: '✅',
+    label: `长/短延时时间级差 Tr - Tsd = 7.6 s`,
+    sub: '8 s − 0.4 s = 7.6 s，远大于要求级差 0.3 s',
+    val: '7.6 s ≥ 0.3 s ✓' });
+
+  // 5. Isd 范围
+  const ok5 = isdA >= 8000 && isdA <= 10000;
+  checks.push({ cls: ok5?'pass':'warn', icon: ok5?'✅':'⚠️',
+    label: `短延时 Isd = ${isdA} A ${ok5?'在':'超出'}建议范围`,
+    sub: '指引要求 8000 ~ 10000 A',
+    val: ok5 ? '8000~10000 A ✓' : '偏离建议范围 ⚠' });
+
+  // 6. Ii 范围
+  const ok6 = iiA >= 15000 && iiA <= 18000;
+  checks.push({ cls: ok6?'pass':'warn', icon: ok6?'✅':'⚠️',
+    label: `瞬时 Ii = ${iiA} A ${ok6?'在':'超出'}建议范围`,
+    sub: '指引要求 15000 ~ 18000 A',
+    val: ok6 ? '15000~18000 A ✓' : '偏离建议范围 ⚠' });
+
+  const passCount = checks.filter(c=>c.cls==='pass').length;
+  const summary = passCount === checks.length
+    ? `<div class="alert alert-success" style="margin-bottom:.9rem">✅ 所有 ${checks.length} 项校验全部通过</div>`
+    : `<div class="alert alert-warn" style="margin-bottom:.9rem">⚠️ ${passCount}/${checks.length} 项通过，请注意标注⚠的项目</div>`;
+
+  return summary + `<div class="check-grid">${checks.map(c=>
+    `<div class="check-item check-${c.cls}">
+      <span class="check-icon">${c.icon}</span>
+      <div class="check-label"><strong>${c.label}</strong><small>${c.sub}</small></div>
+      <span class="check-val">${c.val}</span>
+    </div>`).join('')}</div>`;
+}
+
+/* ---------- Short-Circuit Analysis ---------- */
+function buildSCAnalysis(kva, volt, inA, irA, isdA, iiA) {
+  const uk = getUk();
+  const I_lv = lvRated(kva, volt);
+  const Isc = I_lv / (uk / 100);
+  const ks_isd = Isc / isdA;
+  const ks_ii  = Isc / iiA;
+  const ksClass = v => v >= 1.3 ? 'ks-good' : (v >= 1.0 ? 'ks-warn' : 'ks-bad');
+  const ksLabel = v => {
+    const s = v.toFixed(2);
+    if (v >= 1.3) return `${s} ✓`;
+    if (v >= 1.0) return `${s} ⚠`;
+    return `${s} ✗`;
+  };
+  const pct = v => Math.min(100, (v / Isc * 100));
+  const bars = [[`长延时 Ir`, irA, '#3b82f6'], [`短延时 Isd`, isdA, '#818cf8'], [`瞬时 Ii`, iiA, '#ef4444']];
+
+  return `<div class="section-title" style="margin-top:1.8rem">⚡ 短路电流分析（Uk = ${uk}%）</div>
+    <div class="sc-block">
+      <div class="sc-row">
+        <span class="sc-row-label">变压器二次侧三相短路电流 Isc（估算）</span>
+        <span class="sc-row-val" style="color:#60a5fa;font-size:1.05rem">${(Isc/1000).toFixed(2)} kA</span>
+      </div>
+      <div style="margin:.8rem 0 .4rem;font-size:.76rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em">各保护动作电流占短路电流的比例</div>
+      ${bars.map(([lbl,v,c])=>`
+      <div style="margin-bottom:.65rem">
+        <div style="display:flex;justify-content:space-between;font-size:.8rem;color:var(--label);margin-bottom:.2rem">
+          <span>${lbl} = ${v} A</span><span>${(v/Isc*100).toFixed(1)}% of Isc</span>
+        </div>
+        <div class="sc-bar-track"><div class="sc-bar-fill" style="width:${pct(v)}%;background:${c}"></div></div>
+      </div>`).join('')}
+      <div style="height:.3rem"></div>
+      <div class="sc-row">
+        <span class="sc-row-label">短延时灵敏度系数 Ks_isd = Isc / Isd</span>
+        <span class="sc-row-val ${ksClass(ks_isd)}">${ksLabel(ks_isd)}</span>
+      </div>
+      <div class="sc-row">
+        <span class="sc-row-label">瞬时灵敏度系数 Ks_ii = Isc / Ii</span>
+        <span class="sc-row-val ${ksClass(ks_ii)}">${ksLabel(ks_ii)}</span>
+      </div>
+      <div class="sc-row" style="border-top:1px solid rgba(255,255,255,.06);margin-top:.3rem;padding-top:.5rem">
+        <span class="sc-row-label">灵敏度合格判据（Ks ≥ 1.3）</span>
+        <span class="sc-row-val" style="color:var(--muted);font-size:.78rem">短延时 ${ks_isd>=1.3?'✅':'⚠️'} &nbsp; 瞬时 ${ks_ii>=1.3?'✅':'⚠️'}</span>
+      </div>
+      <div style="margin-top:.7rem;padding:.5rem .7rem;background:rgba(59,130,246,.07);border-radius:6px;font-size:.74rem;color:var(--muted)">
+        💡 Isc ≈ I<sub>变压器额定</sub> ÷ Uk% = ${I_lv.toFixed(0)} ÷ ${uk/100} = ${Isc.toFixed(0)} A（忽略系统阻抗，保守估算）
+      </div>
+    </div>`;
+}
+
+/* ---------- Comparison Table ---------- */
+function buildCompare(kva, volt, currentIn) {
+  const row = IR_TABLE[kva];
+  if (!row) return '<div style="color:var(--muted);font-size:.85rem;padding:.5rem 0">无推荐配置数据</div>';
+  const validIn = Object.keys(row).map(Number);
+  const I_lv = lvRated(kva, volt);
+  const rows = validIn.map(inA => {
+    const irC = row[inA];
+    const irA = round2(irC * inA);
+    const isdC = Math.round(10000 / inA);
+    const isdA = isdC * inA;
+    const iiC  = Math.ceil(15000 / inA);
+    const iiA  = iiC * inA;
+    const isdOk = isdA >= 8000 && isdA <= 10000;
+    const iiOk  = iiA  >= 15000 && iiA  <= 18000;
+    const isCur = inA === currentIn;
+    return `<tr${isCur?' class="cmp-current"':''}>
+      <td>${inA} A${isCur?' <span style="color:#60a5fa;font-size:.72rem">← 当前</span>':''}</td>
+      <td>${irC}</td>
+      <td>${irA}</td>
+      <td>${isdC}</td>
+      <td><span class="${isdOk?'cmp-ok':'cmp-warn'}">${isdA}${isdOk?'':' ⚠'}</span></td>
+      <td>${iiC}</td>
+      <td><span class="${iiOk?'cmp-ok':'cmp-warn'}">${iiA}${iiOk?'':' ⚠'}</span></td>
+      <td style="font-size:.75rem;color:var(--muted)">${(irA/I_lv).toFixed(2)}</td>
+    </tr>`;
+  }).join('');
+  return `<div class="tbl-wrap-cmp"><table class="cmp-tbl">
+    <thead><tr>
+      <th>In (A)</th><th>Ir 系数</th><th>Ir (A)</th>
+      <th>Isd 系数</th><th>Isd (A)</th>
+      <th>Ii 系数</th><th>Ii (A)</th>
+      <th>Ir/I<sub>额定</sub></th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+}
+
+/* ---------- History (localStorage) ---------- */
+const HIST_KEY = 'th_breaker_hist_v1';
+
+function saveHistory(data) {
+  let hist = [];
+  try { hist = JSON.parse(localStorage.getItem(HIST_KEY)) || []; } catch(e) {}
+  hist.unshift({ ...data, ts: Date.now() });
+  if (hist.length > 20) hist = hist.slice(0, 20);
+  try { localStorage.setItem(HIST_KEY, JSON.stringify(hist)); } catch(e) {}
+}
+
+function renderHistory() {
+  const wrap = document.getElementById('hist-list-wrap');
+  if (!wrap) return;
+  let hist = [];
+  try { hist = JSON.parse(localStorage.getItem(HIST_KEY)) || []; } catch(e) {}
+  if (!hist.length) {
+    wrap.innerHTML = '<div class="hist-empty">暂无历史记录</div>';
+    return;
+  }
+  const items = hist.map((h, i) => {
+    const d = new Date(h.ts).toLocaleString('zh-CN', {hour12:false,month:'numeric',day:'numeric',hour:'numeric',minute:'numeric'});
+    const stInfo = h.station ? `<span style="color:#60a5fa">${h.station}</span> · ` : '';
+    return `<div class="hist-item" onclick="recallHistory(${i})">
+      <span class="hist-icon">⚡</span>
+      <div class="hist-body">
+        <div class="hist-title">${stInfo}${h.kva} kVA · In=${h.inA} A · Ir=${h.irA} A</div>
+        <div class="hist-sub">${d} &nbsp;|&nbsp; Isd=${h.isdA} A · Ii=${h.iiA} A · Uk=${h.uk||6}%</div>
+      </div>
+      <button class="hist-del" onclick="event.stopPropagation();deleteHistory(${i})" title="删除">✕</button>
+    </div>`;
+  }).join('');
+  wrap.innerHTML = `<div class="hist-list">${items}</div>`;
+}
+
+function recallHistory(idx) {
+  let hist = [];
+  try { hist = JSON.parse(localStorage.getItem(HIST_KEY)) || []; } catch(e) {}
+  const h = hist[idx];
+  if (!h) return;
+  document.getElementById('sel-kva').value = h.kva;
+  onKvaChange();
+  const selIn = document.getElementById('sel-in');
+  if (selIn) selIn.value = h.inA;
+  if (h.volt) document.getElementById('sel-volt').value = h.volt;
+  if (h.uk) document.getElementById('sel-uk').value = h.uk;
+  onInChange();
+  doCalculate();
+  showToast('✓ 已载入历史记录');
+}
+
+function deleteHistory(idx) {
+  let hist = [];
+  try { hist = JSON.parse(localStorage.getItem(HIST_KEY)) || []; } catch(e) {}
+  hist.splice(idx, 1);
+  try { localStorage.setItem(HIST_KEY, JSON.stringify(hist)); } catch(e) {}
+  renderHistory();
+}
+
+function clearHistory() {
+  if (!confirm('确定要清空所有历史记录吗？')) return;
+  try { localStorage.removeItem(HIST_KEY); } catch(e) {}
+  renderHistory();
+  showToast('历史记录已清空');
+}
+
+/* ---------- Collapsible ---------- */
+function toggleCollapse(id) {
+  const el = document.getElementById(id);
+  const isOpen = !el.classList.contains('closed');
+  el.classList.toggle('closed', isOpen);
+  // find button
+  const btn = document.querySelector(`[onclick="toggleCollapse('${id}','this')"]`) ||
+              document.querySelector(`[onclick*="toggleCollapse('${id}')"]`);
+}
+
+/* ---------- Report Number ---------- */
+function autoGenReportNo() {
+  const d = new Date();
+  const ymd = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+  let seq = 1;
+  try { seq = (parseInt(localStorage.getItem('th_report_seq') || '0') + 1); } catch(e) {}
+  try { localStorage.setItem('th_report_seq', seq); } catch(e) {}
+  const no = `THGDJ-${ymd}-${String(seq).padStart(3,'0')}`;
+  const el = document.getElementById('st-repno');
+  if (el) { el.value = no; showToast('✓ 已生成整定单编号：' + no); }
+}
+
+/* ---------- Load Analysis ---------- */
+function buildLoadAnalysis(kva, volt, inA, irA) {
+  const el = document.getElementById('inp-iload');
+  if (!el || !el.value.trim()) return '';
+  const Iload = parseFloat(el.value.trim());
+  if (isNaN(Iload) || Iload <= 0) return '';
+
+  const I_lv = lvRated(kva, volt);
+  const loadRate = Iload / I_lv * 100;
+  const margin = irA / Iload;
+  const irNeeded = round2(Iload * 1.1 / inA); // optimal Ir coeff for this load
+  const overload = Iload > I_lv;
+
+  let gaugeColor = '#10b981'; // ≤70%
+  if (loadRate > 85) gaugeColor = '#ef4444';
+  else if (loadRate > 70) gaugeColor = '#f59e0b';
+
+  // Semicircle gauge: center(60,60) radius 40, arc M20,60 A40,40,0,0,1,100,60
+  const circ = Math.PI * 40; // ≈ 125.66
+  const dashOff = (circ * (1 - Math.min(loadRate / 100, 1))).toFixed(2);
+  const marginOk = margin >= 1.05;
+
+  let alertHtml;
+  if (overload)
+    alertHtml = `<div class="alert alert-warn" style="margin-top:.8rem;margin-bottom:0">⚠️ 实际电流 ${Iload} A 已超过变压器额定电流 ${I_lv.toFixed(1)} A，变压器处于过载运行状态！</div>`;
+  else if (loadRate > 85)
+    alertHtml = `<div class="alert alert-warn" style="margin-top:.8rem;margin-bottom:0">⚠️ 负载率 ${loadRate.toFixed(1)}%，负荷较重，建议加强监测并考虑增容。</div>`;
+  else
+    alertHtml = `<div class="alert alert-success" style="margin-top:.8rem;margin-bottom:0">✅ 负载率 ${loadRate.toFixed(1)}%，Ir 整定值对当前负荷裕度 ${margin.toFixed(2)} 倍，配置合理。</div>`;
+
+  return `
+  <div class="section-title" style="margin-top:1.8rem">📈 负载率分析（Iload = ${Iload} A）</div>
+  <div class="sc-block">
+    <div class="gauge-outer">
+      <div class="gauge-box">
+        <svg width="120" height="72" viewBox="0 0 120 72">
+          <path d="M 20 60 A 40 40 0 0 1 100 60" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="10" stroke-linecap="round"/>
+          <path d="M 20 60 A 40 40 0 0 1 100 60" fill="none" stroke="${gaugeColor}" stroke-width="10" stroke-linecap="round"
+            stroke-dasharray="${circ.toFixed(2)} ${circ.toFixed(2)}" stroke-dashoffset="${dashOff}"/>
+          <text x="60" y="52" text-anchor="middle" font-size="15" font-weight="800" fill="${gaugeColor}">${loadRate.toFixed(1)}%</text>
+          <text x="60" y="68" text-anchor="middle" font-size="9" fill="#64748b">负载率</text>
+        </svg>
+        <div style="font-size:.7rem;color:var(--muted);margin-top:.1rem">▐<span style="color:#10b981">▋</span>≤70% <span style="color:#f59e0b">▋</span>≤85% <span style="color:#ef4444">▋</span>&gt;85%</div>
+      </div>
+      <div class="gauge-stats">
+        <div class="load-row"><span class="load-row-label">实际运行电流 Iload</span><span class="load-row-val" style="color:var(--text)">${Iload} A</span></div>
+        <div class="load-row"><span class="load-row-label">变压器额定电流 I<sub>lv</sub></span><span class="load-row-val" style="color:var(--text)">${I_lv.toFixed(1)} A</span></div>
+        <div class="load-row"><span class="load-row-label">变压器负载率</span><span class="load-row-val" style="color:${gaugeColor}">${loadRate.toFixed(1)} %${overload?' (过载！)':''}</span></div>
+        <div class="load-row"><span class="load-row-label">长延时整定电流 Ir</span><span class="load-row-val" style="color:var(--text)">${irA} A</span></div>
+        <div class="load-row"><span class="load-row-label">Ir 对实际负荷的倍率</span>
+          <span class="load-row-val" style="color:${marginOk?'#34d399':'#f87171'}">${margin.toFixed(2)} 倍${marginOk?' ✓':' ⚠ 偏低'}</span>
+        </div>
+        <div class="load-row"><span class="load-row-label">推荐 Ir 系数（≥1.1×Iload/In）</span>
+          <span class="load-row-val" style="color:#93c5fd">≥ ${irNeeded} ×In</span>
+        </div>
+      </div>
+    </div>
+    ${alertHtml}
+  </div>`;
+}
+
+/* ---------- Cable Thermal Stability Check ---------- */
+function buildCableCheck(inA, isdA, iiA) {
+  const sec = parseInt((document.getElementById('sel-cable-sec') || {value:'0'}).value || '0');
+  if (!sec) return '';
+  const k = parseInt((document.getElementById('sel-cable-mat') || {value:'115'}).value || '115');
+  const matName = k === 115 ? '铜芯' : '铝芯';
+
+  // I_allow = k × S / √t  (GB50054 热稳定公式)
+  const t_inst = 0.05;   // 瞬时保护清除时间 50ms
+  const t_std  = 0.4;    // 短延时 400ms
+
+  const I_allow_inst = Math.round(k * sec / Math.sqrt(t_inst));
+  const I_allow_std  = Math.round(k * sec / Math.sqrt(t_std));
+
+  const ok_inst = I_allow_inst >= iiA;
+  const ok_std  = I_allow_std  >= isdA;
+
+  return `
+  <div class="section-title" style="margin-top:1.8rem">🔌 电缆热稳定校验（${sec} mm² ${matName}，k = ${k}）</div>
+  <div class="sc-block">
+    <div class="cable-result">
+      <div class="cable-stat">
+        <div class="cs-val" style="color:${ok_inst?'#34d399':'#f87171'}">${I_allow_inst.toLocaleString()}</div>
+        <div class="cs-unit">A</div>
+        <div class="cs-lbl">瞬时允许电流<br>(t = 50 ms)</div>
+      </div>
+      <div class="cable-stat">
+        <div class="cs-val" style="color:${ok_std?'#34d399':'#f87171'}">${I_allow_std.toLocaleString()}</div>
+        <div class="cs-unit">A</div>
+        <div class="cs-lbl">短延时允许电流<br>(t = 400 ms)</div>
+      </div>
+      <div class="cable-stat">
+        <div class="cs-val">${iiA.toLocaleString()}</div>
+        <div class="cs-unit">A</div>
+        <div class="cs-lbl">瞬时整定值 Ii</div>
+      </div>
+      <div class="cable-stat">
+        <div class="cs-val">${isdA.toLocaleString()}</div>
+        <div class="cs-unit">A</div>
+        <div class="cs-lbl">短延时整定值 Isd</div>
+      </div>
+    </div>
+    <div class="check-grid">
+      <div class="check-item check-${ok_inst?'pass':'fail'}">
+        <span class="check-icon">${ok_inst?'✅':'❌'}</span>
+        <div class="check-label">
+          <strong>瞬时热稳定：I_allow = ${I_allow_inst.toLocaleString()} A ${ok_inst?'≥':'<'} Ii = ${iiA.toLocaleString()} A</strong>
+          <small>k=${k}，S=${sec} mm²，t=50 ms → I_allow = ${k}×${sec}/√0.05 = ${I_allow_inst.toLocaleString()} A</small>
+        </div>
+        <span class="check-val">${ok_inst?'合格 ✓':'不合格 ✗'}</span>
+      </div>
+      <div class="check-item check-${ok_std?'pass':'fail'}">
+        <span class="check-icon">${ok_std?'✅':'❌'}</span>
+        <div class="check-label">
+          <strong>短延时热稳定：I_allow = ${I_allow_std.toLocaleString()} A ${ok_std?'≥':'<'} Isd = ${isdA.toLocaleString()} A</strong>
+          <small>k=${k}，S=${sec} mm²，t=400 ms → I_allow = ${k}×${sec}/√0.4 = ${I_allow_std.toLocaleString()} A</small>
+        </div>
+        <span class="check-val">${ok_std?'合格 ✓':'不合格 ✗'}</span>
+      </div>
+    </div>
+    <div style="margin-top:.7rem;padding:.5rem .7rem;background:rgba(59,130,246,.07);border-radius:6px;font-size:.74rem;color:var(--muted)">
+      💡 热稳定公式（GB 50054）：I_allow = k·S / √t，铜芯 k = 115，铝芯 k = 76，S 为截面积 (mm²)，t 为保护动作时间 (s)。
+    </div>
+  </div>`;
+}
+
+/* ---------- Export CSV ---------- */
+function exportCSV() {
+  if (!_lastCalc) { showToast('⚠ 请先执行计算'); return; }
+  const c = _lastCalc;
+  const si = getStationInfo();
+  const uk = c.uk || 6;
+  const d = new Date(c.ts);
+  const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const I_lv = lvRated(c.kva, c.volt);
+  const Isc  = I_lv / (uk / 100);
+
+  const rows = [
+    ['天河供电局框架断路器整定值计算单'],
+    [],
+    ['整定单编号', si.repno || ''],
+    ['配变名称',   si.station || ''],
+    ['馈线/线路名称', si.feeder || ''],
+    ['断路器/设备编号', si.equip || ''],
+    ['操作人员',   si.oper || ''],
+    ['计算日期',   dateStr],
+    [],
+    ['== 输入参数 =='],
+    ['参数', '数值', '单位'],
+    ['变压器额定容量', c.kva, 'kVA'],
+    ['低压侧线电压',   c.volt, 'V'],
+    ['阻抗电压 Uk%',   uk, '%'],
+    ['断路器额定电流 In', c.inA, 'A'],
+    ['变压器低压侧额定电流', I_lv.toFixed(2), 'A'],
+    ['估算三相短路电流 Isc', Isc.toFixed(0), 'A'],
+    [],
+    ['== 整定值 =='],
+    ['保护类型', '整定系数', '动作电流(A)', '动作时限', '数据来源', '状态'],
+    ['长延时保护 LTD', `${c.irCoeff}×In`, c.irA, '8 s', c.irSrc === 'table' ? '查表值' : '公式计算', '启用'],
+    ['短延时保护 STD', `${c.isdCoeff}×In`, c.isdA, '400 ms', '公式计算', '启用'],
+    ['瞬时保护 INST',  `${c.iiCoeff}×In`, c.iiA, '瞬时(<50ms)', '公式计算', '启用'],
+    ['接地保护', '退出/NON', '', '', '', '退出'],
+    ['告警功能', '退出/NON', '', '', '', '退出'],
+    ['三相不平衡', '退出/NON', '', '', '', '退出'],
+    ['过欠压保护', '退出/NON', '', '', '', '退出'],
+    [],
+    ['== 保护配合 =='],
+    ['校验项目', '结果', '数值'],
+    ['Ir ≤ In', c.irA <= c.inA ? '合格' : '不合格', `${c.irA} ≤ ${c.inA}`],
+    ['Isd/Ir ≥ 2', (c.isdA/c.irA) >= 2 ? '合格' : '注意', (c.isdA/c.irA).toFixed(2)],
+    ['Ii/Isd ≥ 1.3', (c.iiA/c.isdA) >= 1.3 ? '合格' : '注意', (c.iiA/c.isdA).toFixed(2)],
+    ['Isd 在 8000~10000 A', (c.isdA >= 8000 && c.isdA <= 10000) ? '合格' : '注意', c.isdA],
+    ['Ii 在 15000~18000 A',  (c.iiA >= 15000 && c.iiA <= 18000) ? '合格' : '注意', c.iiA],
+    ['Ks_isd = Isc/Isd', (Isc/c.isdA) >= 1.3 ? '合格' : '注意', (Isc/c.isdA).toFixed(3)],
+    ['Ks_ii  = Isc/Ii',  (Isc/c.iiA)  >= 1.3 ? '合格' : '注意', (Isc/c.iiA).toFixed(3)],
+  ];
+
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\r\n');
+  const bom = '\uFEFF'; // UTF-8 BOM for Excel
+  const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `整定值_${c.kva}kVA_${c.inA}A_${dateStr.replace(/-/g,'')}.csv`;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+  showToast('✓ CSV 文件已导出（可用 Excel 打开）');
+}
+
+/* ---------- Init ---------- */
+window.addEventListener('DOMContentLoaded', () => {
+  onKvaChange();
+  renderHistory();
+});
+
+window.addEventListener('resize', () => {
+  // redraw diagram if visible
+  if($('diagram-card').style.display !== 'none'){
+    const kva=getKva(), inA=getIn();
+    const row=IR_TABLE[kva];
+    let irC = row&&row[inA]!==undefined ? row[inA] : round2((lvRated(kva,getVolt())*1.1)/inA);
+    drawDiagram(kva, inA, irC*inA, Math.round(10000/inA)*inA, Math.ceil(15000/inA)*inA);
+  }
+});
+</script>
+</body>
+</html>
