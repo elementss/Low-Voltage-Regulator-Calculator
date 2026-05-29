@@ -600,6 +600,82 @@
     .gauge-outer { display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
     .gauge-box { text-align: center; flex-shrink: 0; }
     .gauge-stats { flex: 1; min-width: 180px; }
+
+    /* ===== Mobile ≤640px ===== */
+    @media (max-width: 640px) {
+      .hero { padding: 2rem 1rem 1.6rem; }
+      .hero h1 { font-size: 1.35rem; }
+      .hero p { font-size: .82rem; }
+      .hero-badge { font-size: .72rem; padding: .25rem .7rem; margin-bottom: .8rem; }
+
+      .page { padding: 1rem .75rem 3rem; }
+
+      .card { padding: 1rem; }
+      .card-header { font-size: .92rem; margin-bottom: 1rem; }
+
+      /* 保护卡片：单列，缩小内边距 */
+      .prot-grid { grid-template-columns: 1fr; gap: .7rem; }
+      .prot-card { padding: 1rem; }
+      .pc-main { font-size: 1.6rem; }
+      .pc-title { font-size: .68rem; margin-bottom: .6rem; }
+
+      /* 结果元信息：2列 */
+      .result-meta { gap: .8rem 1.2rem; padding: .75rem 1rem; }
+      .result-meta .m-val { font-size: .92rem; }
+
+      /* 按钮组：铺满 */
+      .btn-group { flex-direction: column; gap: .5rem; }
+      .btn-group .btn { width: 100%; justify-content: center; }
+
+      /* 汇总表字体缩小 */
+      table.summary th,
+      table.summary td { padding: .5rem .6rem; font-size: .78rem; }
+      table.summary .val-ref { font-size: .68rem; }
+
+      /* 保护配合校验：隐藏右侧值到下方 */
+      .check-item { flex-wrap: wrap; }
+      .check-val { width: 100%; text-align: right; font-size: .76rem; }
+
+      /* 表单控件加高，提升触摸体验 */
+      .form-control,
+      .form-ctrl-num,
+      .station-form input[type=text] { padding: .85rem 1rem; font-size: 1rem; min-height: 48px; }
+      .form-control { padding-right: 2.5rem; }
+
+      .btn-primary { padding: 1rem; font-size: 1rem; min-height: 50px; }
+
+      /* 部分提示信息换行 */
+      .info-box { flex-direction: column; align-items: flex-start; gap: .3rem; }
+
+      /* 参考表：允许横向滚动 */
+      .ref-tbl-wrap { -webkit-overflow-scrolling: touch; }
+
+      /* 短路分析 */
+      .sc-block { padding: .75rem .85rem; }
+      .sc-row { font-size: .78rem; }
+
+      /* footer */
+      .footer { font-size: .76rem; padding: 1.5rem .75rem; }
+
+      /* 历史记录 */
+      .hist-list { max-height: 220px; }
+
+      /* 对比表 */
+      table.cmp-tbl th,
+      table.cmp-tbl td { padding: .4rem .5rem; font-size: .74rem; }
+
+      /* 图表高度适配 */
+      #tic-canvas { height: 260px !important; }
+    }
+
+    /* ===== 极小屏 ≤380px ===== */
+    @media (max-width: 380px) {
+      .hero h1 { font-size: 1.15rem; }
+      .page { padding: .75rem .5rem 2.5rem; }
+      .card { padding: .85rem; }
+      table.summary th,
+      table.summary td { padding: .4rem .45rem; font-size: .72rem; }
+    }
   </style>
 </head>
 <body>
