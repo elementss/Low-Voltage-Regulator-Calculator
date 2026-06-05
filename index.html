@@ -1620,7 +1620,7 @@ function exportJSON() {
     c.isdA / c.irA >= 2,
     c.iiA / c.isdA >= 1.3,
     true, // Tr-Tsd 时间级差固定通过
-    c.isdA >= 8000 && c.isdA <= 15000, // Isd 指引要求 8000~15000 A
+    c.isdA >= 3000 && c.isdA <= 15000, // Isd 指引要求 3000~15000 A
     c.iiA >= 15000 && c.iiA <= 18000
   ];
   const passCount = passChecks.filter(Boolean).length;
@@ -1676,7 +1676,7 @@ function exportJSON() {
         { item: 'Isd/Ir ≥ 2', passed: passChecks[1], ratio: parseFloat((c.isdA/c.irA).toFixed(2)) },
         { item: 'Ii/Isd ≥ 1.3', passed: passChecks[2], ratio: parseFloat((c.iiA/c.isdA).toFixed(2)) },
         { item: 'Tr-Tsd 时间级差', passed: passChecks[3], diff_s: 7.6 },
-        { item: 'Isd 在 8000~15000 A', passed: passChecks[4] },
+        { item: 'Isd 在 3000~15000 A', passed: passChecks[4] },
         { item: 'Ii 在 15000~18000 A',  passed: passChecks[5] }
       ]
     },
@@ -1756,11 +1756,11 @@ function buildCoordCheck(inA, irA, isdA, iiA) {
     val: '7.6 s ≥ 0.3 s ✓' });
 
   // 5. Isd 范围校核
-  const ok5 = isdA >= 8000 && isdA <= 15000;
+  const ok5 = isdA >= 3000 && isdA <= 15000;
   checks.push({ cls: ok5?'pass':'warn', icon: ok5?'✅':'⚠️',
     label: `短延时 Isd = ${isdA} A ${ok5?'在':'超出'}建议范围`,
-    sub: '指引要求 8000 ~ 15000 A',
-    val: ok5 ? '8000~15000 A ✓' : '偏离建议范围 ⚠' });
+    sub: '指引要求 3000 ~ 15000 A',
+    val: ok5 ? '3000~15000 A ✓' : '偏离建议范围 ⚠' });
 
   // 6. Ii 范围
   const ok6 = iiA >= 15000 && iiA <= 18000;
@@ -2130,7 +2130,7 @@ function exportCSV() {
     ['Ir ≤ In', c.irA <= c.inA ? '合格' : '不合格', `${c.irA} ≤ ${c.inA}`],
     ['Isd/Ir ≥ 2', (c.isdA/c.irA) >= 2 ? '合格' : '注意', (c.isdA/c.irA).toFixed(2)],
     ['Ii/Isd ≥ 1.3', (c.iiA/c.isdA) >= 1.3 ? '合格' : '注意', (c.iiA/c.isdA).toFixed(2)],
-    ['Isd 在 8000~15000 A', (c.isdA >= 8000 && c.isdA <= 15000) ? '合格' : '注意', c.isdA],
+    ['Isd 在 3000~15000 A', (c.isdA >= 3000 && c.isdA <= 15000) ? '合格' : '注意', c.isdA],
     ['Ii 在 15000~18000 A',  (c.iiA >= 15000 && c.iiA <= 18000) ? '合格' : '注意', c.iiA],
     ['Ks_isd = Isc/Isd', (Isc/c.isdA) >= 1.3 ? '合格' : '注意', (Isc/c.isdA).toFixed(3)],
     ['Ks_ii  = Isc/Ii',  (Isc/c.iiA)  >= 1.3 ? '合格' : '注意', (Isc/c.iiA).toFixed(3)],
