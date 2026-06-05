@@ -789,7 +789,7 @@
           <div class="f-eq">Ir 系数 = (I<sub>LV</sub> × 1.1) ÷ In</div>
           <div>Tr = <strong>8 s</strong>（固定）</div>
           <div style="margin-top:.6rem" class="f-title">🟣 短延时保护 (STD)</div>
-          <div class="f-eq">Isd 系数 = 6 ×In（固定）</div>
+          <div class="f-eq">Isd 系数 = 6 ×Ir（固定）</div>
           <div>Tsd = <strong>400 ms</strong>（固定）</div>
           <div style="margin-top:.6rem" class="f-title">🔴 瞬时保护 (INST)</div>
           <div class="f-eq">Ii 系数 = 15000 ÷ In</div>
@@ -1009,7 +1009,7 @@
               <thead>
                 <tr>
                   <th>In (A)</th>
-                  <th>Isd (×In)</th><th>Tsd (ms)</th>
+                  <th>Isd (×Ir)</th><th>Tsd (ms)</th>
                   <th>Ii (×In)</th>
                   <th>Ip (×In)</th><th>Tp (ms)</th>
                   <th>Ig (×In)</th><th>Tg (ms)</th>
@@ -1171,9 +1171,9 @@ function doCalculate() {
   }
   const irA  = round2(irCoeff * inA);
 
-  // Isd（固定整定系数 6 ×In）
+  // Isd（固定整定系数 6 ×Ir）
   const isdCoeff = 6;
-  const isdA     = isdCoeff * inA;
+  const isdA     = round2(isdCoeff * irA);
 
   // Ii（整定系数向上取整）
   const iiCoeff = Math.ceil(15000 / inA);
@@ -1230,12 +1230,12 @@ function doCalculate() {
       <div class="prot-card st">
         <div class="pc-title">🟣 短延时保护 STD</div>
         <div class="pc-main">${isdA}<span class="unit">A</span></div>
-        <div class="pc-sub">动作电流 Isd = ${isdCoeff} × ${inA} A</div>
+        <div class="pc-sub">动作电流 Isd = ${round2(isdA/inA)} × ${inA} A（In）</div>
         <div class="pc-rows">
-          <div class="pc-row"><span class="pc-row-label">整定系数</span><span class="pc-row-val">${isdCoeff} ×In&ensp;<span style="color:var(--muted);font-size:.8em">（${round2(isdCoeff/irCoeff)} ×Ir）</span></span></div>
+          <div class="pc-row"><span class="pc-row-label">整定系数</span><span class="pc-row-val">${round2(isdA/inA)} ×In&ensp;<span style="color:var(--muted);font-size:.8em">（${isdCoeff} ×Ir）</span></span></div>
           <div class="pc-row"><span class="pc-row-label">动作时限 Tsd</span><span class="pc-row-val">400 ms</span></div>
           <div class="pc-row"><span class="pc-row-label">范围检查</span>
-            <span><span class="badge badge-on">✓ 固定 6 ×In</span></span>
+            <span><span class="badge badge-on">✓ 固定 6 ×Ir</span></span>
           </div>
         </div>
       </div>
@@ -1317,7 +1317,7 @@ function doCalculate() {
           </tr>
           <tr>
             <td>短延时保护</td><td>Isd / Tsd</td>
-            <td>${isdCoeff} ×In<span class="val-ref" style="margin-top:.15rem">${round2(isdCoeff/irCoeff)} ×Ir</span></td>
+            <td>${round2(isdA/inA)} ×In<span class="val-ref" style="margin-top:.15rem">${isdCoeff} ×Ir</span></td>
             <td class="val-em"><span class="val-ref">In = ${inA} A / Ir = ${irA} A</span>${isdA} A</td>
             <td>400 ms</td>
             <td><span class="badge badge-on">启用</span></td>
@@ -1620,7 +1620,7 @@ function exportJSON() {
     c.isdA / c.irA >= 2,
     c.iiA / c.isdA >= 1.3,
     true, // Tr-Tsd 时间级差固定通过
-    true, // Isd 固定 6 ×In 政策，始终通过
+    c.isdA >= 8000 && c.isdA <= 15000, // Isd 指引要求 8000~15000 A
     c.iiA >= 15000 && c.iiA <= 18000
   ];
   const passCount = passChecks.filter(Boolean).length;
@@ -1676,7 +1676,7 @@ function exportJSON() {
         { item: 'Isd/Ir ≥ 2', passed: passChecks[1], ratio: parseFloat((c.isdA/c.irA).toFixed(2)) },
         { item: 'Ii/Isd ≥ 1.3', passed: passChecks[2], ratio: parseFloat((c.iiA/c.isdA).toFixed(2)) },
         { item: 'Tr-Tsd 时间级差', passed: passChecks[3], diff_s: 7.6 },
-        { item: 'Isd = 6 ×In（固定整定政策）', passed: passChecks[4] },
+        { item: 'Isd 在 8000~15000 A', passed: passChecks[4] },
         { item: 'Ii 在 15000~18000 A',  passed: passChecks[5] }
       ]
     },
@@ -1755,11 +1755,12 @@ function buildCoordCheck(inA, irA, isdA, iiA) {
     sub: '8 s − 0.4 s = 7.6 s，远大于要求级差 0.3 s',
     val: '7.6 s ≥ 0.3 s ✓' });
 
-  // 5. Isd 固定政策
-  checks.push({ cls: 'pass', icon: '✅',
-    label: `短延时 Isd = ${isdA} A（固定 6 ×In 整定）`,
-    sub: '按天河供电局指引统一整定为 6 ×In',
-    val: '6 ×In 固定 ✓' });
+  // 5. Isd 范围校核
+  const ok5 = isdA >= 8000 && isdA <= 15000;
+  checks.push({ cls: ok5?'pass':'warn', icon: ok5?'✅':'⚠️',
+    label: `短延时 Isd = ${isdA} A ${ok5?'在':'超出'}建议范围`,
+    sub: '指引要求 8000 ~ 15000 A',
+    val: ok5 ? '8000~15000 A ✓' : '偏离建议范围 ⚠' });
 
   // 6. Ii 范围
   const ok6 = iiA >= 15000 && iiA <= 18000;
@@ -1841,10 +1842,10 @@ function buildCompare(kva, volt, currentIn) {
     const irC = row[inA];
     const irA = round2(irC * inA);
     const isdC = 6;
-    const isdA = isdC * inA;
+    const isdA = round2(isdC * irA);
     const iiC  = Math.ceil(15000 / inA);
     const iiA  = iiC * inA;
-    const isdOk = true; // 固定 6 ×In 政策
+    const isdOk = true; // 固定 6 ×Ir 政策
     const iiOk  = iiA  >= 15000 && iiA  <= 18000;
     const isCur = inA === currentIn;
     return `<tr${isCur?' class="cmp-current"':''}>
@@ -2129,7 +2130,7 @@ function exportCSV() {
     ['Ir ≤ In', c.irA <= c.inA ? '合格' : '不合格', `${c.irA} ≤ ${c.inA}`],
     ['Isd/Ir ≥ 2', (c.isdA/c.irA) >= 2 ? '合格' : '注意', (c.isdA/c.irA).toFixed(2)],
     ['Ii/Isd ≥ 1.3', (c.iiA/c.isdA) >= 1.3 ? '合格' : '注意', (c.iiA/c.isdA).toFixed(2)],
-    ['Isd = 6 ×In（固定）', '合格', c.isdA],
+    ['Isd 在 8000~15000 A', (c.isdA >= 8000 && c.isdA <= 15000) ? '合格' : '注意', c.isdA],
     ['Ii 在 15000~18000 A',  (c.iiA >= 15000 && c.iiA <= 18000) ? '合格' : '注意', c.iiA],
     ['Ks_isd = Isc/Isd', (Isc/c.isdA) >= 1.3 ? '合格' : '注意', (Isc/c.isdA).toFixed(3)],
     ['Ks_ii  = Isc/Ii',  (Isc/c.iiA)  >= 1.3 ? '合格' : '注意', (Isc/c.iiA).toFixed(3)],
@@ -2159,7 +2160,8 @@ window.addEventListener('resize', () => {
     const kva=getKva(), inA=getIn();
     const row=IR_TABLE[kva];
     let irC = row&&row[inA]!==undefined ? row[inA] : round2((lvRated(kva,getVolt())*1.1)/inA);
-    drawDiagram(kva, inA, irC*inA, 6*inA, Math.ceil(15000/inA)*inA);
+    const irAr = round2(irC * inA);
+    drawDiagram(kva, inA, irAr, round2(6*irAr), Math.ceil(15000/inA)*inA);
   }
 });
 </script>
