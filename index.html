@@ -28,12 +28,23 @@
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    html {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: hidden;
+      overflow-x: clip;
+    }
+
     body {
       font-family: 'PingFang SC','Microsoft YaHei UI','Helvetica Neue',Arial,sans-serif;
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
       line-height: 1.6;
+      width: 100%;
+      max-width: 100%;
+      overflow-x: hidden;
+      overflow-x: clip;
     }
 
     /* ===== Header ===== */
@@ -58,7 +69,13 @@
       height: 1px;
       background: linear-gradient(90deg, transparent, rgba(99,140,255,0.4), transparent);
     }
-    .hero-inner { position: relative; z-index: 1; }
+    .hero-inner {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 72rem;
+      margin: 0 auto;
+    }
     .hero-badge {
       display: inline-flex;
       align-items: center;
@@ -82,7 +99,21 @@
       background-clip: text;
       margin-bottom: .5rem;
     }
-    .hero p { color: var(--label); font-size: .95rem; }
+    .hero-subtitle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: .45rem;
+      flex-wrap: wrap;
+      color: var(--label);
+      font-size: .95rem;
+    }
+    .hero-meta::before {
+      content: '·';
+      margin-right: .45rem;
+      color: rgba(148,163,184,.6);
+    }
+    .hero-guide-mobile { display: none; }
 
     /* ===== Layout ===== */
     .page { max-width: 1440px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
@@ -92,11 +123,20 @@
       grid-template-columns: 360px 1fr;
       gap: 1.5rem;
       align-items: start;
+      width: 100%;
+      min-width: 0;
     }
-    @media(max-width:1024px){ .grid-main { grid-template-columns: 1fr; } }
+    @media(max-width:1024px){ .grid-main { grid-template-columns: minmax(0, 1fr); } }
 
-    .left-col { display: flex; flex-direction: column; gap: 1.25rem; }
-    .right-col { display: flex; flex-direction: column; gap: 1.25rem; }
+    .left-col,
+    .right-col {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      width: 100%;
+      min-width: 0;
+      max-width: 100%;
+    }
 
     /* ===== Card ===== */
     .card {
@@ -104,6 +144,9 @@
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 1.5rem;
+      width: 100%;
+      min-width: 0;
+      max-width: 100%;
     }
     .card-header {
       display: flex;
@@ -333,7 +376,14 @@
     .badge-tbl { background: rgba(124,58,237,.15); color: #c4b5fd; border: 1px solid rgba(124,58,237,.3); }
 
     /* ===== Summary Table ===== */
-    .tbl-wrap { overflow-x: auto; border-radius: var(--radius-sm); border: 1px solid var(--border); }
+    .tbl-wrap {
+      width: 100%;
+      min-width: 0;
+      max-width: 100%;
+      overflow-x: auto;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+    }
     table.summary {
       width: 100%;
       border-collapse: collapse;
@@ -356,11 +406,11 @@
     table.summary .val-ref { display: block; font-size: .73rem; color: var(--muted); font-weight: 400; margin-bottom: .15rem; line-height: 1.5; }
 
     /* ===== Diagram ===== */
-    .diagram-wrap { position: relative; }
+    .diagram-wrap { position: relative; width: 100%; min-width: 0; max-width: 100%; overflow: hidden; }
     .diagram-wrap canvas { width: 100%; display: block; border-radius: var(--radius-sm); }
 
     /* ===== Reference Tables ===== */
-    .ref-tbl-wrap { overflow-x: auto; }
+    .ref-tbl-wrap { width: 100%; min-width: 0; max-width: 100%; overflow-x: auto; }
     table.reftbl {
       width: 100%;
       border-collapse: collapse;
@@ -405,7 +455,7 @@
       transition: color .15s;
     }
     .collapse-btn:hover { color: #93c5fd; }
-    .collapse-content { overflow: hidden; transition: max-height .35s ease, opacity .25s; max-height: 2000px; opacity: 1; }
+    .collapse-content { width: 100%; min-width: 0; max-width: 100%; overflow: hidden; transition: max-height .35s ease, opacity .25s; max-height: 2000px; opacity: 1; }
     .collapse-content.closed { max-height: 0; opacity: 0; }
 
     /* ===== Divider ===== */
@@ -539,7 +589,7 @@
     .ks-bad  { color: #f87171; }
 
     /* ===== Comparison Table ===== */
-    .tbl-wrap-cmp { overflow-x: auto; border-radius: var(--radius-sm); border: 1px solid var(--border); }
+    .tbl-wrap-cmp { width: 100%; min-width: 0; max-width: 100%; overflow-x: auto; border-radius: var(--radius-sm); border: 1px solid var(--border); }
     table.cmp-tbl { width: 100%; border-collapse: collapse; font-size: .82rem; }
     table.cmp-tbl th { background: rgba(30,64,175,.18); color: #93c5fd; padding: .55rem .8rem; text-align: center; border: 1px solid rgba(59,130,246,.15); font-weight: 600; font-size: .76rem; white-space: nowrap; }
     table.cmp-tbl th:first-child { text-align: left; }
@@ -604,10 +654,45 @@
 
     /* ===== Mobile ≤640px ===== */
     @media (max-width: 640px) {
-      .hero { padding: 2rem 1rem 1.6rem; }
-      .hero h1 { font-size: 1.35rem; }
-      .hero p { font-size: .82rem; overflow-wrap: break-word; word-break: break-word; padding: 0 .5rem; }
-      .hero-badge { font-size: .72rem; padding: .25rem .7rem; margin-bottom: .8rem; }
+      .hero {
+        width: 100%;
+        padding: 1.35rem 1rem 1.2rem;
+      }
+      .hero-inner {
+        width: 100%;
+        max-width: none;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .hero h1 {
+        width: 100%;
+        font-size: clamp(1.08rem, 5.4vw, 1.45rem);
+        line-height: 1.25;
+        letter-spacing: 0;
+        white-space: nowrap;
+        margin-bottom: .65rem;
+      }
+      .hero-subtitle {
+        width: 100%;
+        flex-direction: column;
+        gap: .08rem;
+        padding: 0;
+        font-size: .72rem;
+        line-height: 1.45;
+        overflow-wrap: normal;
+        word-break: normal;
+      }
+      .hero-subtitle span { max-width: 100%; }
+      .hero-subtitle .hero-guide-full { display: none; }
+      .hero-subtitle .hero-guide-mobile { display: block; white-space: nowrap; }
+      .hero-meta::before { content: none; }
+      .hero-badge {
+        font-size: .68rem;
+        line-height: 1.2;
+        padding: .24rem .68rem;
+        margin-bottom: .72rem;
+      }
       .footer p { overflow-wrap: break-word; word-break: break-word; }
 
       .page { padding: 1rem 0 3rem; }
@@ -673,8 +758,9 @@
 
     /* ===== 极小屏 ≤380px ===== */
     @media (max-width: 380px) {
-      .hero h1 { font-size: 1.15rem; }
-      .hero p { font-size: .74rem; }
+      .hero { padding-inline: .75rem; }
+      .hero h1 { font-size: clamp(1rem, 5.2vw, 1.15rem); }
+      .hero-subtitle { font-size: .68rem; }
       .footer { font-size: .71rem; padding: 1.2rem .5rem; }
       .page { padding: .75rem .5rem 2.5rem; }
       .card { padding: .85rem; }
@@ -693,7 +779,11 @@
       天河供电局 · 配网运维工具
     </div>
     <h1>低压框架断路器整定值计算器</h1>
-    <p>基于《天河供电局低压框架断路器定值整定指引》 © 2026  hanhan开发 版权所有</p>
+    <p class="hero-subtitle">
+      <span class="hero-guide-full">基于《天河供电局低压框架断路器定值整定指引》</span>
+      <span class="hero-guide-mobile">依据《低压框架断路器定值整定指引》</span>
+      <span class="hero-meta">© 2026 · hanhan 开发 · 版权所有</span>
+    </p>
   </div>
 </header>
 
